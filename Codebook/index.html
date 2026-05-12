@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Climate Visualization Pair Coder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <h1>Climate Visualization Pair Coder</h1>
+      <p class="subtitle">
+        Import a scraped media-image CSV, select a media adaptation image, pair it with an original scientific figure,
+        and code the transformation. Media outlet, title, URL, and publication date are filled automatically.
+      </p>
+    </div>
+    <div class="hero-actions">
+      <button id="saveRecordBtn" class="button primary">Save coded pair</button>
+      <button id="saveNextBtn" class="button dark">Save and next</button>
+      <button id="exportCsvBtn" class="button">Export CSV</button>
+      <button id="clearFormBtn" class="button subtle">Reset form</button>
+      <button id="clearRecordsBtn" class="button subtle danger">Delete saved records</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="left-column">
+      <section class="panel">
+        <h2>Media adaptation</h2>
+        <div class="field">
+          <span>Import scraped media image CSV</span>
+          <input id="csvInput" type="file" accept=".csv,text/csv">
+        </div>
+        <div class="grid two compact-grid">
+          <label class="field">
+            <span>Select imported media image</span>
+            <select id="mediaCsvSelect">
+              <option value="">No CSV imported</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Or upload media image file</span>
+            <input id="media_image" type="file" accept="image/*">
+          </label>
+        </div>
+        <div class="nav-actions">
+          <button id="prevRowBtn" class="button subtle small" type="button">Previous</button>
+          <div id="mediaRowProgress" class="progress-pill">0 / 0</div>
+          <button id="nextRowBtn" class="button subtle small" type="button">Next</button>
+        </div>
+        <div id="mediaCsvSummary" class="summary-box">No media image row selected.</div>
+        <div id="mediaPreview" class="preview">No media image selected</div>
+      </section>
+
+      <section class="panel">
+        <h2>Original scientific figure</h2>
+        <div class="field">
+          <span>Upload original scientific image</span>
+          <input id="source_image" type="file" accept="image/*">
+        </div>
+        <div id="sourcePreview" class="preview">No original scientific image selected</div>
+      </section>
+    </section>
+
+    <section class="right-column">
+      <section class="panel">
+        <h2>Pair metadata</h2>
+        <div class="grid two">
+          <label class="field">
+            <span>Record ID</span>
+            <input id="record_id" type="text" readonly>
+          </label>
+          <label class="field">
+            <span>Coder name</span>
+            <select id="coder_name">
+              <option value="">Select coder</option>
+              <option value="Vanessa">Vanessa</option>
+              <option value="Maria Jesus">Maria Jesus</option>
+              <option value="Yongyi">Yongyi</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Source organization</span>
+            <input id="source_organization" type="text" list="sourceOrganizationOptions" placeholder="Select or type a source">
+            <datalist id="sourceOrganizationOptions">
+              <option value="IPCC"></option>
+              <option value="ECMWF / Copernicus"></option>
+              <option value="NASA"></option>
+              <option value="NOAA"></option>
+            </datalist>
+          </label>
+          <label class="field">
+            <span>Source figure ID</span>
+            <input id="source_figure_id" type="text" placeholder="e.g. AR5 WGI SPM.7 or Figure 3">
+          </label>
+          <label class="field full readonly">
+            <span>Media outlet</span>
+            <input id="media_outlet" type="text" readonly>
+          </label>
+          <label class="field full readonly">
+            <span>Media article title</span>
+            <input id="media_article_title" type="text" readonly>
+          </label>
+          <label class="field full readonly">
+            <span>Media article URL</span>
+            <input id="media_article_url" type="text" readonly>
+          </label>
+          <label class="field readonly">
+            <span>Media publication date</span>
+            <input id="media_publication_date" type="text" readonly>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Transformation coding</h2>
+        <p class="section-help">
+          The codes below compare the media adaptation to the original scientific figure.
+        </p>
+        <div id="codebookSections" class="sections"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Notes and quality control</h2>
+        <div class="grid two">
+          <label class="field">
+            <span>Overall adaptation intensity</span>
+            <select id="overall_adaptation_intensity">
+              <option value="">Select</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Coding confidence</span>
+            <select id="coding_confidence">
+              <option value="">Select</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+          <label class="field full">
+            <span>Coder notes</span>
+            <textarea id="coder_notes" rows="5" placeholder="Notes about ambiguity, interpretation, or missing context."></textarea>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="records-head">
+          <div>
+            <h2>Saved records</h2>
+            <p class="section-help">Saved in your browser until exported or cleared.</p>
+          </div>
+          <div class="records-count"><span id="recordCount">0</span> saved</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Record ID</th>
+                <th>Source org.</th>
+                <th>Outlet</th>
+                <th>Source figure ID</th>
+                <th>Media image</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="recordsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <template id="optionGroupTemplate">
+    <section class="code-section">
+      <div class="section-title-wrap">
+        <h3 class="section-title"></h3>
+        <p class="section-copy"></p>
+      </div>
+      <div class="field-groups"></div>
+    </section>
+  </template>
+
+  <template id="fieldCardTemplate">
+    <div class="field-card">
+      <div class="field-card-head">
+        <label class="field-card-label"></label>
+        <p class="field-card-help"></p>
+      </div>
+      <div class="chip-group"></div>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
