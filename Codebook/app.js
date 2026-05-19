@@ -2,6 +2,9 @@ const recordsStorageKey = "source-image-codebook-records-v3";
 const priorRecordsStorageKey = "ipcc-image-codebook-records-v2";
 const coderStorageKey = "source-image-codebook-last-coder";
 const priorCoderStorageKey = "ipcc-image-codebook-last-coder";
+const rowStateStorageKey = "source-image-codebook-row-state-v1";
+const customFieldsStorageKey = "source-image-codebook-custom-fields-v1";
+const rowStatusGroups = ["bbc", "guardian", "nytimes", "other"];
 
 const codebookSections = [
   {
@@ -133,7 +136,6 @@ const codebookSections = [
 ];
 
 const readonlyMetadataFields = [
-  "media_outlet",
   "media_article_title",
   "media_article_url",
   "media_publication_date",
@@ -144,6 +146,7 @@ const metadataFields = [
   "coder_name",
   "source_organization",
   "source_figure_id",
+  "media_outlet",
   ...readonlyMetadataFields,
   "overall_adaptation_intensity",
   "coding_confidence",
@@ -155,55 +158,87 @@ const elements = {
   coderSelect: document.getElementById("coder_name"),
   sourceOrganizationInput: document.getElementById("source_organization"),
   sourceFigureInput: document.getElementById("source_figure_id"),
+  coderNotesInput: document.getElementById("coder_notes"),
+  mediaOutletInput: document.getElementById("media_outlet"),
   recordIdInput: document.getElementById("record_id"),
   sourcePreview: document.getElementById("sourcePreview"),
   mediaPreview: document.getElementById("mediaPreview"),
   csvInput: document.getElementById("csvInput"),
+  rowStatusCsvInput: document.getElementById("rowStatusCsvInput"),
+  exportRowStatusBtn: document.getElementById("exportRowStatusBtn"),
   mediaCsvSelect: document.getElementById("mediaCsvSelect"),
   mediaCsvSummary: document.getElementById("mediaCsvSummary"),
   prevRowBtn: document.getElementById("prevRowBtn"),
   nextRowBtn: document.getElementById("nextRowBtn"),
+  markNotImportantBtn: document.getElementById("markNotImportantBtn"),
+  deleteRowBtn: document.getElementById("deleteRowBtn"),
   mediaRowProgress: document.getElementById("mediaRowProgress"),
   mediaImageInput: document.getElementById("media_image"),
   sourceImageInput: document.getElementById("source_image"),
+  mediaArticleUrlInput: document.getElementById("media_article_url"),
+  mediaArticleUrlLink: document.getElementById("mediaArticleUrlLink"),
   saveRecordBtn: document.getElementById("saveRecordBtn"),
   saveNextBtn: document.getElementById("saveNextBtn"),
   exportCsvBtn: document.getElementById("exportCsvBtn"),
   clearFormBtn: document.getElementById("clearFormBtn"),
   clearRecordsBtn: document.getElementById("clearRecordsBtn"),
+  lightbox: document.getElementById("imageLightbox"),
+  lightboxImage: document.getElementById("lightboxImage"),
+  lightboxCaption: document.getElementById("lightboxCaption"),
+  lightboxCloseBtn: document.getElementById("lightboxCloseBtn"),
   recordCount: document.getElementById("recordCount"),
   recordsTableBody: document.getElementById("recordsTableBody"),
   optionGroupTemplate: document.getElementById("optionGroupTemplate"),
   fieldCardTemplate: document.getElementById("fieldCardTemplate"),
+  customFieldTemplate: document.getElementById("customFieldTemplate"),
 };
 
 let savedRecords = loadRecords();
+let rowState = normalizeRowState(loadRowState());
 let importedRows = [];
 let currentMediaRow = null;
+let activeLoadedRecord = null;
 let currentFiles = {
   source_image: null,
   media_image: null,
 };
+let currentFileData = {
+  source_image: null,
+  media_image: null,
+};
+let currentImportedSourceGroup = "other";
 
 init();
 
 function init() {
+  hydrateCustomFields();
   renderCodebook();
   attachFilePreview(elements.sourceImageInput, elements.sourcePreview, "source_image");
   attachFilePreview(elements.mediaImageInput, elements.mediaPreview, "media_image", true);
+  elements.coderNotesInput.addEventListener("input", () => autoResizeTextarea(elements.coderNotesInput));
 
   elements.csvInput.addEventListener("change", handleCsvImport);
+  elements.rowStatusCsvInput.addEventListener("change", handleRowStatusImport);
+  elements.exportRowStatusBtn.addEventListener("click", exportRowStatusCsv);
   elements.mediaCsvSelect.addEventListener("change", handleMediaRowSelection);
   elements.prevRowBtn.addEventListener("click", () => moveMediaSelection(-1));
   elements.nextRowBtn.addEventListener("click", () => moveMediaSelection(1));
+  elements.markNotImportantBtn.addEventListener("click", () => setCurrentRowDisposition("not_important"));
+  elements.deleteRowBtn.addEventListener("click", () => setCurrentRowDisposition("deleted"));
   elements.sourceOrganizationInput.addEventListener("input", updateRecordId);
   elements.sourceFigureInput.addEventListener("input", updateRecordId);
+  elements.mediaOutletInput.addEventListener("input", updateRecordId);
   elements.coderSelect.addEventListener("change", persistCoder);
   elements.saveRecordBtn.addEventListener("click", saveCurrentRecord);
   elements.saveNextBtn.addEventListener("click", () => saveCurrentRecord({ moveNextAfterSave: true }));
   elements.exportCsvBtn.addEventListener("click", exportCsv);
   elements.clearFormBtn.addEventListener("click", resetForm);
   elements.clearRecordsBtn.addEventListener("click", clearRecords);
+  elements.mediaPreview.addEventListener("click", handlePreviewClick);
+  elements.sourcePreview.addEventListener("click", handlePreviewClick);
+  elements.lightbox.addEventListener("click", handleLightboxBackdropClick);
+  elements.lightboxCloseBtn.addEventListener("click", closeLightbox);
+  document.addEventListener("keydown", handleGlobalKeydown);
 
   restoreLastCoder();
   resetForm(true);
@@ -211,7 +246,23 @@ function init() {
   updateNavigationButtons();
 }
 
-function renderCodebook() {
+function autoResizeTextarea(textarea) {
+  if (!textarea) return;
+  textarea.style.height = "auto";
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result || "");
+    reader.onerror = () => reject(reader.error || new Error("Failed to read file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderCodebook(preservedSelections = null) {
+  elements.sectionRoot.innerHTML = "";
   codebookSections.forEach((section) => {
     const fragment = elements.optionGroupTemplate.content.cloneNode(true);
     const sectionNode = fragment.querySelector(".code-section");
@@ -222,16 +273,42 @@ function renderCodebook() {
 
     section.fields.forEach((field) => {
       const fieldFragment = elements.fieldCardTemplate.content.cloneNode(true);
-      fieldFragment.querySelector(".field-card-label").textContent = field.label;
+      const fieldCard = fieldFragment.querySelector(".field-card");
+      const fieldHead = fieldFragment.querySelector(".field-card-head");
+      const deleteButton = fieldFragment.querySelector(".field-card-delete");
+      fieldFragment.querySelector(".field-card-label").textContent = field.custom ? `* ${field.label}` : field.label;
       fieldFragment.querySelector(".field-card-help").textContent = field.help;
       const chipGroup = fieldFragment.querySelector(".chip-group");
       chipGroup.appendChild(makeChip(field.id, "", "Unset"));
       field.options.forEach((option) => chipGroup.appendChild(makeChip(field.id, option, prettifyOption(option))));
+      if (field.custom) {
+        fieldHead.classList.add("with-delete");
+        deleteButton.classList.remove("hidden");
+        deleteButton.addEventListener("click", () => deleteCustomField(section.key, field.id));
+      }
       fieldGroups.appendChild(fieldFragment);
     });
 
+    const customFieldFragment = elements.customFieldTemplate.content.cloneNode(true);
+    const builder = customFieldFragment.querySelector(".custom-field-builder");
+    const toggleBtn = customFieldFragment.querySelector(".custom-field-toggle-btn");
+    const cancelBtn = customFieldFragment.querySelector(".custom-field-cancel-btn");
+    const editor = customFieldFragment.querySelector(".custom-field-editor");
+    builder.dataset.sectionKey = section.key;
+    toggleBtn.addEventListener("click", () => {
+      editor.classList.remove("hidden");
+      toggleBtn.classList.add("hidden");
+    });
+    cancelBtn.addEventListener("click", () => resetCustomFieldBuilder(builder));
+    builder.querySelector(".custom-field-add-btn").addEventListener("click", () => addCustomField(section.key, builder));
+    fieldGroups.appendChild(customFieldFragment);
+
     elements.sectionRoot.appendChild(fragment);
   });
+
+  if (preservedSelections) {
+    restoreCodebookSelections(preservedSelections);
+  }
 }
 
 function makeChip(groupName, optionValue, optionLabel) {
@@ -253,7 +330,17 @@ function attachFilePreview(input, previewElement, key, isMedia = false) {
   input.addEventListener("change", () => {
     const file = input.files[0] || null;
     currentFiles[key] = file;
+    currentFileData[key] = null;
     renderPreview(previewElement, file);
+    if (file) {
+      readFileAsDataUrl(file).then((dataUrl) => {
+        if (currentFiles[key] === file) {
+          currentFileData[key] = dataUrl;
+        }
+      }).catch(() => {
+        currentFileData[key] = null;
+      });
+    }
     if (isMedia && file) {
       tryAutoMatchMediaFile(file);
     }
@@ -269,9 +356,33 @@ function renderPreview(target, file) {
   target.classList.remove("muted");
   const reader = new FileReader();
   reader.onload = () => {
-    target.innerHTML = `<img src="${reader.result}" alt="${escapeHtml(file.name)}">`;
+    target.innerHTML = `
+      <button type="button" class="preview-trigger" data-preview-src="${reader.result}" data-preview-caption="${escapeHtml(file.name)}">
+        <img src="${reader.result}" alt="${escapeHtml(file.name)}">
+      </button>
+    `;
   };
   reader.readAsDataURL(file);
+}
+
+function renderSavedPreviewNote(target, message) {
+  target.classList.remove("muted");
+  target.innerHTML = `<div class="saved-preview-note">${escapeHtml(message)}</div>`;
+}
+
+function renderPreviewFromSource(target, src, caption, fallbackText) {
+  if (!src) {
+    target.classList.add("muted");
+    target.textContent = fallbackText;
+    return;
+  }
+  target.classList.remove("muted");
+  const safeCaption = escapeHtml(caption || "Preview image");
+  target.innerHTML = `
+    <button type="button" class="preview-trigger" data-preview-src="${src}" data-preview-caption="${safeCaption}">
+      <img src="${src}" alt="${safeCaption}">
+    </button>
+  `;
 }
 
 function renderPreviewFromPath(target, filePath, fallbackText) {
@@ -283,8 +394,11 @@ function renderPreviewFromPath(target, filePath, fallbackText) {
   const normalizedPath = filePath.replace(/\\/g, "/");
   const pathWithLeadingSlash = normalizedPath.match(/^[A-Za-z]:\//) ? `/${normalizedPath}` : normalizedPath;
   const fileUrl = `file://${encodeURI(pathWithLeadingSlash)}`;
-  target.classList.remove("muted");
-  target.innerHTML = `<img src="${fileUrl}" alt="${escapeHtml(extractFilename(filePath))}">`;
+  renderPreviewFromSource(target, fileUrl, extractFilename(filePath), fallbackText);
+}
+
+function renderPreviewFromDataUrl(target, dataUrl, caption, fallbackText) {
+  renderPreviewFromSource(target, dataUrl, caption, fallbackText);
 }
 
 function handleCsvImport(event) {
@@ -292,10 +406,37 @@ function handleCsvImport(event) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    importedRows = parseCsv(reader.result);
+    const parsedRows = parseCsv(reader.result);
+    currentImportedSourceGroup = detectSourceGroupFromFilename(file.name || "") || detectSourceGroupFromRows(parsedRows);
+    importedRows = parsedRows;
+    importedRows = importedRows.map((row, index) => ({
+      ...row,
+      __sourceGroup: currentImportedSourceGroup,
+      __rowIndex: String(index),
+      __rowKey: buildRowKey({ ...row, __sourceGroup: currentImportedSourceGroup }, index),
+    }));
     populateMediaCsvSelect();
   };
   reader.readAsText(file);
+}
+
+function detectSourceGroupFromFilename(filename) {
+  const normalized = (filename || "").toLowerCase();
+  if (normalized.includes("bbc")) return "bbc";
+  if (normalized.includes("guardian")) return "guardian";
+  if (normalized.includes("nytimes") || normalized.includes("new_york_times") || normalized.includes("newyorktimes")) return "nytimes";
+  return "";
+}
+
+function detectSourceGroupFromRows(rows) {
+  const sample = (rows || [])
+    .slice(0, 5)
+    .map((row) => `${row.newspaper || ""} ${row.media_outlet || ""}`.toLowerCase())
+    .join(" ");
+  if (sample.includes("bbc")) return "bbc";
+  if (sample.includes("guardian")) return "guardian";
+  if (sample.includes("new york times") || sample.includes("nytimes")) return "nytimes";
+  return "other";
 }
 
 function parseCsv(csvText) {
@@ -341,23 +482,34 @@ function parseCsv(csvText) {
       headers.forEach((header, headerIndex) => {
         record[header] = (values[headerIndex] || "").trim();
       });
+      record.__rowKey = buildRowKey(record, index);
       return record;
     });
 }
 
+function recordsToCsv(records, headers) {
+  const rows = [headers.join(",")];
+  records.forEach((record) => {
+    rows.push(headers.map((header) => csvEscape(record[header] ?? "")).join(","));
+  });
+  return rows.join("\n");
+}
+
 function populateMediaCsvSelect() {
   const options = [`<option value="">Select a media image row</option>`];
-  importedRows.forEach((row) => {
+  getNavigableRows().forEach((row) => {
+    const state = getRowState(row);
     const label = [
       row.newspaper || row.media_outlet || "Unknown outlet",
       row.article_title || row.article_id || "Untitled",
       row.image_index ? `img ${row.image_index}` : "",
+      state.disposition === "completed" && state.completed_by ? `done:${state.completed_by}` : "",
     ].filter(Boolean).join(" | ");
     options.push(`<option value="${row.__rowIndex}">${escapeHtml(label)}</option>`);
   });
   elements.mediaCsvSelect.innerHTML = options.join("");
   elements.mediaCsvSummary.textContent = importedRows.length
-    ? `${importedRows.length} rows imported. Select one to auto-fill metadata.`
+    ? `${getNavigableRows().length} active rows available from ${importedRows.length} imported rows.`
     : "No media image row selected.";
   updateNavigationButtons();
 }
@@ -371,6 +523,7 @@ function handleMediaRowSelection() {
 
 function applyMediaRow(row) {
   if (!row) {
+    document.getElementById("media_outlet").value = "";
     readonlyMetadataFields.forEach((field) => {
       document.getElementById(field).value = "";
     });
@@ -385,13 +538,21 @@ function applyMediaRow(row) {
     return;
   }
 
-  document.getElementById("media_outlet").value = row.newspaper || "";
+  document.getElementById("media_outlet").value = row.newspaper || row.media_outlet || "";
   document.getElementById("media_article_title").value = row.article_title || "";
   document.getElementById("media_article_url").value = row.article_url || "";
   document.getElementById("media_publication_date").value = row.published_date || "";
+  syncMediaArticleLink(row.article_url || "");
+  const state = getRowState(row);
+  const statusLine = state.disposition === "completed"
+    ? `<strong>Status:</strong> completed by ${escapeHtml(state.completed_by || "unknown")}<br>`
+    : state.disposition === "not_important"
+      ? `<strong>Status:</strong> marked not important<br>`
+      : state.disposition === "deleted"
+        ? `<strong>Status:</strong> deleted from queue<br>`
+        : "";
   elements.mediaCsvSummary.innerHTML = `
-    <strong>Selected row:</strong> ${escapeHtml(row.newspaper || "")}<br>
-    <strong>Title:</strong> ${escapeHtml(row.article_title || "")}<br>
+    ${statusLine}
     <strong>Image file:</strong> ${escapeHtml(extractFilename(row.local_image_path || ""))}
   `;
   if (!currentFiles.media_image) {
@@ -414,23 +575,27 @@ function tryAutoMatchMediaFile(file) {
 }
 
 function moveMediaSelection(direction) {
-  if (!importedRows.length) return;
-  const currentIndex = importedRows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
+  const rows = getNavigableRows();
+  if (!rows.length) return;
+  const currentIndex = rows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
   const nextIndex = currentIndex === -1
-    ? (direction > 0 ? 0 : importedRows.length - 1)
-    : Math.max(0, Math.min(importedRows.length - 1, currentIndex + direction));
-  elements.mediaCsvSelect.value = importedRows[nextIndex].__rowIndex;
+    ? (direction > 0 ? 0 : rows.length - 1)
+    : Math.max(0, Math.min(rows.length - 1, currentIndex + direction));
+  elements.mediaCsvSelect.value = rows[nextIndex].__rowIndex;
   handleMediaRowSelection();
 }
 
 function updateNavigationButtons() {
-  const hasRows = importedRows.length > 0;
-  const currentIndex = importedRows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
+  const rows = getNavigableRows();
+  const hasRows = rows.length > 0;
+  const currentIndex = rows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
   elements.prevRowBtn.disabled = !hasRows || currentIndex <= 0;
-  elements.nextRowBtn.disabled = !hasRows || currentIndex === -1 || currentIndex >= importedRows.length - 1;
+  elements.nextRowBtn.disabled = !hasRows || currentIndex === -1 || currentIndex >= rows.length - 1;
   elements.saveNextBtn.disabled = !hasRows;
+  elements.markNotImportantBtn.disabled = !hasRows || currentIndex === -1;
+  elements.deleteRowBtn.disabled = !hasRows || currentIndex === -1;
   const displayIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
-  elements.mediaRowProgress.textContent = `${displayIndex} / ${importedRows.length}`;
+  elements.mediaRowProgress.textContent = `${displayIndex} / ${rows.length}`;
 }
 
 function getFormValue(id) {
@@ -440,6 +605,26 @@ function getFormValue(id) {
 function getRadioValue(name) {
   const checked = document.querySelector(`input[name="${name}"]:checked`);
   return checked ? checked.value : "";
+}
+
+function captureCodebookSelections() {
+  const selections = {};
+  codebookSections.forEach((section) => {
+    section.fields.forEach((field) => {
+      selections[field.id] = getRadioValue(field.id);
+    });
+  });
+  return selections;
+}
+
+function restoreCodebookSelections(selections) {
+  codebookSections.forEach((section) => {
+    section.fields.forEach((field) => {
+      const optionValue = selections[field.id] || "";
+      const radio = document.getElementById(`${field.id}__${optionValue || "unset"}`) || document.getElementById(`${field.id}__unset`);
+      if (radio) radio.checked = true;
+    });
+  });
 }
 
 function buildRecordId() {
@@ -465,18 +650,39 @@ function restoreLastCoder() {
   }
 }
 
-function collectRecord() {
+async function collectRecord() {
   const record = {};
   metadataFields.forEach((field) => {
     record[field] = getFormValue(field);
   });
   record.source_image_filename = currentFiles.source_image ? currentFiles.source_image.name : "";
+  if (!record.source_image_filename && activeLoadedRecord?.record_id === record.record_id) {
+    record.source_image_filename = activeLoadedRecord.source_image_filename || "";
+  }
   record.media_image_filename = currentFiles.media_image
     ? currentFiles.media_image.name
     : extractFilename(currentMediaRow?.local_image_path || "");
+  if (!record.media_image_filename && activeLoadedRecord?.record_id === record.record_id) {
+    record.media_image_filename = activeLoadedRecord.media_image_filename || "";
+  }
   record.media_csv_local_path = currentMediaRow?.local_image_path || "";
+  if (!record.media_csv_local_path && activeLoadedRecord?.record_id === record.record_id) {
+    record.media_csv_local_path = activeLoadedRecord.media_csv_local_path || "";
+  }
   record.media_csv_article_id = currentMediaRow?.article_id || "";
+  if (!record.media_csv_article_id && activeLoadedRecord?.record_id === record.record_id) {
+    record.media_csv_article_id = activeLoadedRecord.media_csv_article_id || "";
+  }
   record.media_csv_image_url = currentMediaRow?.image_url || "";
+  if (!record.media_csv_image_url && activeLoadedRecord?.record_id === record.record_id) {
+    record.media_csv_image_url = activeLoadedRecord.media_csv_image_url || "";
+  }
+  record.source_image_data_url = currentFiles.source_image
+    ? (currentFileData.source_image || await readFileAsDataUrl(currentFiles.source_image))
+    : activeLoadedRecord?.source_image_data_url || "";
+  record.media_uploaded_data_url = currentFiles.media_image
+    ? (currentFileData.media_image || await readFileAsDataUrl(currentFiles.media_image))
+    : activeLoadedRecord?.media_uploaded_data_url || "";
   record.coded_at = new Date().toISOString();
 
   codebookSections.forEach((section) => {
@@ -516,9 +722,9 @@ function validateRecord(record, { forExport = false } = {}) {
   return requiredMessages;
 }
 
-function saveCurrentRecord({ moveNextAfterSave = false } = {}) {
+async function saveCurrentRecord({ moveNextAfterSave = false } = {}) {
   updateRecordId();
-  const record = collectRecord();
+  const record = await collectRecord();
   const validationErrors = validateRecord(record);
   if (validationErrors.length) {
     return;
@@ -533,6 +739,8 @@ function saveCurrentRecord({ moveNextAfterSave = false } = {}) {
 
   persistRecords();
   persistCoder();
+  markCurrentRowCompleted(record);
+  activeLoadedRecord = { ...record };
   renderSavedRecords();
   if (moveNextAfterSave && importedRows.length) {
     moveToNextAfterSave();
@@ -542,19 +750,25 @@ function saveCurrentRecord({ moveNextAfterSave = false } = {}) {
 }
 
 function moveToNextAfterSave() {
-  const currentIndex = importedRows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
-  const canAdvance = currentIndex >= 0 && currentIndex < importedRows.length - 1;
+  const rows = getNavigableRows();
+  const currentIndex = rows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
+  const canAdvance = currentIndex >= 0 && currentIndex < rows.length - 1;
   const preservedSourceOrganization = getFormValue("source_organization");
   const preservedCoder = getFormValue("coder_name");
+  currentFiles.media_image = null;
+  currentFileData.media_image = null;
+  elements.mediaImageInput.value = "";
   if (canAdvance) {
-    elements.mediaCsvSelect.value = importedRows[currentIndex + 1].__rowIndex;
+    elements.mediaCsvSelect.value = rows[currentIndex + 1].__rowIndex;
     handleMediaRowSelection();
   }
   document.getElementById("source_figure_id").value = "";
   document.getElementById("overall_adaptation_intensity").value = "";
   document.getElementById("coding_confidence").value = "";
-  document.getElementById("coder_notes").value = "";
+  elements.coderNotesInput.value = "";
+  autoResizeTextarea(elements.coderNotesInput);
   currentFiles.source_image = null;
+  currentFileData.source_image = null;
   elements.sourceImageInput.value = "";
   renderPreview(elements.sourcePreview, null);
   codebookSections.forEach((section) => {
@@ -586,12 +800,21 @@ function renderSavedRecords() {
       <td>${escapeHtml(record.media_outlet)}</td>
       <td>${escapeHtml(record.source_figure_id)}</td>
       <td>${escapeHtml(record.media_image_filename || "")}</td>
-      <td><button class="table-action" data-record-id="${record.record_id}">Delete</button></td>
+      <td>
+        <button class="table-action table-load-action" data-record-id="${record.record_id}" data-action="load">Load / Edit</button>
+        <button class="table-action" data-record-id="${record.record_id}" data-action="delete">Delete</button>
+      </td>
     `;
     elements.recordsTableBody.appendChild(row);
   });
   elements.recordsTableBody.querySelectorAll(".table-action").forEach((button) => {
-    button.addEventListener("click", () => deleteRecord(button.dataset.recordId));
+    button.addEventListener("click", () => {
+      if (button.dataset.action === "load") {
+        loadRecordIntoForm(button.dataset.recordId);
+        return;
+      }
+      deleteRecord(button.dataset.recordId);
+    });
   });
 }
 
@@ -602,14 +825,17 @@ function deleteRecord(recordId) {
 }
 
 function resetForm(initialLoad = false) {
+  activeLoadedRecord = null;
   document.getElementById("source_organization").value = "";
   document.getElementById("source_figure_id").value = "";
+  document.getElementById("media_outlet").value = "";
   readonlyMetadataFields.forEach((field) => {
     document.getElementById(field).value = "";
   });
   document.getElementById("overall_adaptation_intensity").value = "";
   document.getElementById("coding_confidence").value = "";
-  document.getElementById("coder_notes").value = "";
+  elements.coderNotesInput.value = "";
+  autoResizeTextarea(elements.coderNotesInput);
 
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
@@ -628,8 +854,11 @@ function resetForm(initialLoad = false) {
   elements.sourceImageInput.value = "";
   currentFiles.media_image = null;
   currentFiles.source_image = null;
+  currentFileData.media_image = null;
+  currentFileData.source_image = null;
   renderPreview(elements.mediaPreview, null);
   renderPreview(elements.sourcePreview, null);
+  syncMediaArticleLink("");
 
   if (!initialLoad) {
     restoreLastCoder();
@@ -642,8 +871,100 @@ function clearRecords() {
   if (!savedRecords.length) return;
   if (!confirm("Delete all saved records from this browser?")) return;
   savedRecords = [];
+  clearCompletedRowStates();
   persistRecords();
   renderSavedRecords();
+}
+
+function loadRecordIntoForm(recordId) {
+  const record = savedRecords.find((item) => item.record_id === recordId);
+  if (!record) return;
+
+  activeLoadedRecord = { ...record };
+  document.getElementById("record_id").value = record.record_id || "";
+  document.getElementById("coder_name").value = record.coder_name || "";
+  document.getElementById("source_organization").value = record.source_organization || "";
+  document.getElementById("source_figure_id").value = record.source_figure_id || "";
+  document.getElementById("media_outlet").value = record.media_outlet || "";
+  document.getElementById("media_article_title").value = record.media_article_title || "";
+  document.getElementById("media_article_url").value = record.media_article_url || "";
+  document.getElementById("media_publication_date").value = record.media_publication_date || "";
+  document.getElementById("overall_adaptation_intensity").value = record.overall_adaptation_intensity || "";
+  document.getElementById("coding_confidence").value = record.coding_confidence || "";
+  elements.coderNotesInput.value = record.coder_notes || "";
+  autoResizeTextarea(elements.coderNotesInput);
+  syncMediaArticleLink(record.media_article_url || "");
+
+  codebookSections.forEach((section) => {
+    section.fields.forEach((field) => {
+      const optionValue = record[field.id] || "";
+      const targetId = `${field.id}__${optionValue || "unset"}`;
+      const radio = document.getElementById(targetId) || document.getElementById(`${field.id}__unset`);
+      if (radio) radio.checked = true;
+    });
+  });
+
+  currentFiles.media_image = null;
+  currentFiles.source_image = null;
+  currentFileData.media_image = null;
+  currentFileData.source_image = null;
+  elements.mediaImageInput.value = "";
+  elements.sourceImageInput.value = "";
+
+  const matchedRow = importedRows.find((row) => {
+    return (
+      (record.media_csv_article_id && row.article_id === record.media_csv_article_id) ||
+      (record.media_csv_local_path && row.local_image_path === record.media_csv_local_path) ||
+      (record.media_csv_image_url && row.image_url === record.media_csv_image_url)
+    );
+  });
+
+  if (matchedRow && getNavigableRows().some((row) => row.__rowIndex === matchedRow.__rowIndex)) {
+    elements.mediaCsvSelect.value = matchedRow.__rowIndex;
+    currentMediaRow = matchedRow;
+    applyMediaRow(matchedRow);
+  } else {
+    currentMediaRow = null;
+    elements.mediaCsvSelect.value = "";
+    elements.mediaCsvSummary.innerHTML = `
+      <strong>Loaded saved record:</strong> ${escapeHtml(record.record_id)}<br>
+      <strong>Title:</strong> ${escapeHtml(record.media_article_title || "")}<br>
+      <strong>Saved media image:</strong> ${escapeHtml(record.media_image_filename || "")}
+    `;
+    if (record.media_csv_local_path) {
+      renderPreviewFromPath(elements.mediaPreview, record.media_csv_local_path, "No media image selected");
+    } else if (record.media_uploaded_data_url) {
+      renderPreviewFromDataUrl(
+        elements.mediaPreview,
+        record.media_uploaded_data_url,
+        record.media_image_filename || "Saved media image",
+        "No media image selected"
+      );
+    } else if (record.media_image_filename) {
+      renderSavedPreviewNote(elements.mediaPreview, `Saved media image: ${record.media_image_filename}`);
+    } else {
+      renderPreview(elements.mediaPreview, null);
+    }
+  }
+
+  if (record.source_image_data_url) {
+    renderPreviewFromDataUrl(
+      elements.sourcePreview,
+      record.source_image_data_url,
+      record.source_image_filename || "Saved original scientific image",
+      "No original scientific image selected"
+    );
+  } else if (record.source_image_filename) {
+    renderSavedPreviewNote(
+      elements.sourcePreview,
+      `Saved original scientific image: ${record.source_image_filename}. Re-upload only if you want to replace it.`
+    );
+  } else {
+    renderPreview(elements.sourcePreview, null);
+  }
+
+  updateRecordId();
+  updateNavigationButtons();
 }
 
 function persistRecords() {
@@ -682,11 +1003,7 @@ function exportCsv() {
     ...codebookSections.flatMap((section) => section.fields.map((field) => field.id)),
     "coded_at",
   ];
-  const rows = [headers.join(",")];
-  savedRecords.forEach((record) => {
-    rows.push(headers.map((header) => csvEscape(record[header] ?? "")).join(","));
-  });
-  downloadBlob(rows.join("\n"), "climate_visualization_coding.csv", "text/csv;charset=utf-8;");
+  downloadBlob(recordsToCsv(savedRecords, headers), "climate_visualization_coding.csv", "text/csv;charset=utf-8;");
 }
 
 function downloadBlob(content, filename, mimeType) {
@@ -697,6 +1014,388 @@ function downloadBlob(content, filename, mimeType) {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function buildRowKey(row, fallbackIndex = 0) {
+  return [
+    row.__sourceGroup || "other",
+    row.newspaper || row.media_outlet || "outlet",
+    row.article_id || row.article_url || "article",
+    row.image_index || fallbackIndex,
+    extractFilename(row.local_image_path || row.image_url || ""),
+  ].join("__");
+}
+
+function loadRowState() {
+  try {
+    return JSON.parse(localStorage.getItem(rowStateStorageKey) || "{}");
+  } catch {
+    return emptyGroupedRowState();
+  }
+}
+
+function persistRowState() {
+  localStorage.setItem(rowStateStorageKey, JSON.stringify(rowState));
+}
+
+function emptyGroupedRowState() {
+  return rowStatusGroups.reduce((accumulator, group) => {
+    accumulator[group] = {};
+    return accumulator;
+  }, {});
+}
+
+function normalizeRowState(rawState) {
+  const grouped = emptyGroupedRowState();
+  if (!rawState || typeof rawState !== "object" || Array.isArray(rawState)) {
+    return grouped;
+  }
+  const alreadyGrouped = rowStatusGroups.some((group) => rawState[group] && typeof rawState[group] === "object");
+  if (alreadyGrouped) {
+    rowStatusGroups.forEach((group) => {
+      grouped[group] = { ...(rawState[group] || {}) };
+    });
+    return grouped;
+  }
+  grouped.other = { ...rawState };
+  return grouped;
+}
+
+function loadCustomFieldConfig() {
+  try {
+    return JSON.parse(localStorage.getItem(customFieldsStorageKey) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function persistCustomFields() {
+  const payload = {};
+  codebookSections.forEach((section) => {
+    payload[section.key] = section.fields
+      .filter((field) => field.custom)
+      .map((field) => ({
+        id: field.id,
+        label: field.label,
+        help: field.help,
+        options: field.options,
+        custom: true,
+      }));
+  });
+  localStorage.setItem(customFieldsStorageKey, JSON.stringify(payload));
+}
+
+function hydrateCustomFields() {
+  const config = loadCustomFieldConfig();
+  codebookSections.forEach((section) => {
+    const customFields = config[section.key] || [];
+    customFields.forEach((field) => {
+      if (!section.fields.some((existingField) => existingField.id === field.id)) {
+        section.fields.push(field);
+      }
+    });
+  });
+}
+
+function getRowState(row) {
+  if (!row?.__rowKey) return {};
+  const group = row.__sourceGroup || "other";
+  return rowState[group]?.[row.__rowKey] || {};
+}
+
+function getNavigableRows() {
+  return importedRows.filter((row) => {
+    const disposition = getRowState(row).disposition || "active";
+    return disposition !== "not_important" && disposition !== "deleted";
+  });
+}
+
+function markCurrentRowCompleted(record) {
+  const group = currentMediaRow?.__sourceGroup || "other";
+  const rowKey = currentMediaRow?.__rowKey || `manual__${record.record_id}`;
+  rowState[group][rowKey] = {
+    ...(rowState[group][rowKey] || {}),
+    disposition: "completed",
+    completed_by: record.coder_name,
+    completed_at: record.coded_at,
+    record_id: record.record_id,
+    updated_by: record.coder_name,
+    updated_at: record.coded_at,
+  };
+  persistRowState();
+  populateMediaCsvSelect();
+  if (currentMediaRow && getNavigableRows().some((row) => row.__rowIndex === currentMediaRow.__rowIndex)) {
+    elements.mediaCsvSelect.value = currentMediaRow.__rowIndex;
+  }
+}
+
+function setCurrentRowDisposition(disposition) {
+  if (!currentMediaRow?.__rowKey) return;
+  if (disposition === "deleted" && !confirm("Delete this media row from the current coding queue?")) {
+    return;
+  }
+  const group = currentMediaRow.__sourceGroup || "other";
+  rowState[group][currentMediaRow.__rowKey] = {
+    ...(rowState[group][currentMediaRow.__rowKey] || {}),
+    disposition,
+    completed_by: disposition === "completed" ? (rowState[group][currentMediaRow.__rowKey]?.completed_by || "") : "",
+    completed_at: disposition === "completed" ? (rowState[group][currentMediaRow.__rowKey]?.completed_at || "") : "",
+    record_id: disposition === "completed" ? (rowState[group][currentMediaRow.__rowKey]?.record_id || "") : "",
+    updated_by: getFormValue("coder_name"),
+    updated_at: new Date().toISOString(),
+  };
+  persistRowState();
+  const rows = getNavigableRows();
+  populateMediaCsvSelect();
+  if (!rows.length) {
+    currentMediaRow = null;
+    elements.mediaCsvSelect.value = "";
+    applyMediaRow(null);
+    return;
+  }
+  const nextRow = rows.find((row) => row.__rowIndex !== currentMediaRow.__rowIndex) || rows[0];
+  elements.mediaCsvSelect.value = nextRow.__rowIndex;
+  handleMediaRowSelection();
+}
+
+function clearCompletedRowStates() {
+  rowStatusGroups.forEach((group) => {
+    Object.keys(rowState[group] || {}).forEach((rowKey) => {
+      if ((rowState[group][rowKey] || {}).disposition === "completed") {
+        delete rowState[group][rowKey];
+      }
+    });
+  });
+  persistRowState();
+}
+
+function addCustomField(sectionKey, builder) {
+  const preservedSelections = captureCodebookSelections();
+  const labelInput = builder.querySelector(".custom-field-label");
+  const helpInput = builder.querySelector(".custom-field-help");
+  const optionsInput = builder.querySelector(".custom-field-options");
+  const label = (labelInput.value || "").trim();
+  const help = (helpInput.value || "").trim();
+  const options = (optionsInput.value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => item.toLowerCase().replace(/\s+/g, "_"));
+
+  if (!label || !help || options.length < 2) {
+    alert("Add a custom item with a name, a short explanation, and at least two comma-separated categories.");
+    return;
+  }
+
+  const section = codebookSections.find((entry) => entry.key === sectionKey);
+  if (!section) return;
+
+  section.fields.push({
+    id: `custom_${sectionKey}_${slugify(label)}_${Date.now()}`,
+    label,
+    help,
+    options,
+    custom: true,
+  });
+  persistCustomFields();
+  renderCodebook(preservedSelections);
+}
+
+function resetCustomFieldBuilder(builder) {
+  const labelInput = builder.querySelector(".custom-field-label");
+  const helpInput = builder.querySelector(".custom-field-help");
+  const optionsInput = builder.querySelector(".custom-field-options");
+  const editor = builder.querySelector(".custom-field-editor");
+  const toggleBtn = builder.querySelector(".custom-field-toggle-btn");
+  if (labelInput) labelInput.value = "";
+  if (helpInput) helpInput.value = "";
+  if (optionsInput) optionsInput.value = "";
+  if (editor) editor.classList.add("hidden");
+  if (toggleBtn) toggleBtn.classList.remove("hidden");
+}
+
+function deleteCustomField(sectionKey, fieldId) {
+  const preservedSelections = captureCodebookSelections();
+  const section = codebookSections.find((entry) => entry.key === sectionKey);
+  if (!section) return;
+  section.fields = section.fields.filter((field) => field.id !== fieldId);
+  persistCustomFields();
+  renderCodebook(preservedSelections);
+}
+
+function syncMediaArticleLink(url) {
+  const normalizedUrl = (url || "").trim();
+  elements.mediaArticleUrlLink.href = normalizedUrl || "#";
+  elements.mediaArticleUrlLink.textContent = normalizedUrl ? "Open article" : "No link";
+  elements.mediaArticleUrlLink.classList.toggle("disabled", !normalizedUrl);
+}
+
+function exportRowStatusCsv() {
+  const headers = ["row_key", "disposition", "completed_by", "completed_at", "record_id", "updated_by", "updated_at"];
+  downloadBlob(buildRowStatusWorkbookXml(headers), "row_status.xls", "application/vnd.ms-excel");
+}
+
+function handleRowStatusImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const filename = (file.name || "").toLowerCase();
+    const importedState = filename.endsWith(".csv")
+      ? parseLegacyRowStatusCsv(reader.result)
+      : parseRowStatusWorkbook(reader.result);
+    rowStatusGroups.forEach((group) => {
+      rowState[group] = {
+        ...(rowState[group] || {}),
+        ...(importedState[group] || {}),
+      };
+    });
+    persistRowState();
+    populateMediaCsvSelect();
+    if (currentMediaRow) {
+      const rowStillVisible = getNavigableRows().some((row) => row.__rowIndex === currentMediaRow.__rowIndex);
+      if (rowStillVisible) {
+        elements.mediaCsvSelect.value = currentMediaRow.__rowIndex;
+        handleMediaRowSelection();
+      } else {
+        currentMediaRow = null;
+        elements.mediaCsvSelect.value = "";
+        applyMediaRow(null);
+      }
+    }
+    alert("Row status file imported.");
+  };
+  reader.readAsText(file);
+}
+
+function buildRowStatusWorkbookXml(headers) {
+  const worksheetXml = rowStatusGroups.map((group) => {
+    const rows = Object.entries(rowState[group] || {}).map(([rowKey, state]) => ({
+      row_key: rowKey,
+      disposition: state.disposition || "",
+      completed_by: state.completed_by || "",
+      completed_at: state.completed_at || "",
+      record_id: state.record_id || "",
+      updated_by: state.updated_by || "",
+      updated_at: state.updated_at || "",
+    }));
+    const tableRows = [
+      `<Row>${headers.map((header) => makeSpreadsheetCell(header)).join("")}</Row>`,
+      ...rows.map((row) => `<Row>${headers.map((header) => makeSpreadsheetCell(row[header] || "")).join("")}</Row>`),
+    ].join("");
+    return `<Worksheet ss:Name="${escapeXml(group)}"><Table>${tableRows}</Table></Worksheet>`;
+  }).join("");
+
+  return `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">${worksheetXml}</Workbook>`;
+}
+
+function makeSpreadsheetCell(value) {
+  return `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`;
+}
+
+function parseLegacyRowStatusCsv(csvText) {
+  const grouped = emptyGroupedRowState();
+  parseCsv(csvText).forEach((row) => {
+    const rowKey = (row.row_key || "").trim();
+    if (!rowKey) return;
+    const requestedGroup = (row.group || "").trim().toLowerCase();
+    const group = rowStatusGroups.includes(requestedGroup) ? requestedGroup : currentImportedSourceGroup;
+    grouped[group][rowKey] = {
+      disposition: (row.disposition || "").trim() || "active",
+      completed_by: (row.completed_by || "").trim(),
+      completed_at: (row.completed_at || "").trim(),
+      record_id: (row.record_id || "").trim(),
+      updated_by: (row.updated_by || "").trim(),
+      updated_at: (row.updated_at || "").trim(),
+    };
+  });
+  return grouped;
+}
+
+function parseRowStatusWorkbook(xmlText) {
+  const grouped = emptyGroupedRowState();
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(xmlText, "application/xml");
+  const worksheets = Array.from(xml.getElementsByTagNameNS("*", "Worksheet"));
+  worksheets.forEach((worksheet) => {
+    const groupName = (
+      worksheet.getAttribute("ss:Name")
+      || worksheet.getAttribute("Name")
+      || worksheet.getAttributeNS("urn:schemas-microsoft-com:office:spreadsheet", "Name")
+      || ""
+    ).trim().toLowerCase();
+    if (!rowStatusGroups.includes(groupName)) return;
+    const rows = Array.from(worksheet.getElementsByTagNameNS("*", "Row"));
+    if (!rows.length) return;
+    const headers = extractSpreadsheetRowValues(rows[0]);
+    rows.slice(1).forEach((rowNode) => {
+      const values = extractSpreadsheetRowValues(rowNode);
+      const rowObject = {};
+      headers.forEach((header, index) => {
+        rowObject[header] = values[index] || "";
+      });
+      const rowKey = (rowObject.row_key || "").trim();
+      if (!rowKey) return;
+      grouped[groupName][rowKey] = {
+        disposition: (rowObject.disposition || "").trim() || "active",
+        completed_by: (rowObject.completed_by || "").trim(),
+        completed_at: (rowObject.completed_at || "").trim(),
+        record_id: (rowObject.record_id || "").trim(),
+        updated_by: (rowObject.updated_by || "").trim(),
+        updated_at: (rowObject.updated_at || "").trim(),
+      };
+    });
+  });
+  return grouped;
+}
+
+function extractSpreadsheetRowValues(rowNode) {
+  const cells = Array.from(rowNode.getElementsByTagNameNS("*", "Cell"));
+  return cells.map((cell) => {
+    const dataNode = cell.getElementsByTagNameNS("*", "Data")[0];
+    return dataNode?.textContent || "";
+  });
+}
+
+function handlePreviewClick(event) {
+  const trigger = event.target.closest(".preview-trigger");
+  if (!trigger) return;
+  openLightbox(trigger.dataset.previewSrc || "", trigger.dataset.previewCaption || "");
+}
+
+function openLightbox(src, caption) {
+  if (!src) return;
+  elements.lightboxImage.src = src;
+  elements.lightboxImage.alt = caption || "Expanded image preview";
+  elements.lightboxCaption.textContent = caption || "";
+  elements.lightbox.classList.remove("hidden");
+  elements.lightbox.setAttribute("aria-hidden", "false");
+}
+
+function closeLightbox() {
+  elements.lightbox.classList.add("hidden");
+  elements.lightbox.setAttribute("aria-hidden", "true");
+  elements.lightboxImage.src = "";
+  elements.lightboxImage.alt = "";
+  elements.lightboxCaption.textContent = "";
+}
+
+function handleLightboxBackdropClick(event) {
+  if (event.target === elements.lightbox) {
+    closeLightbox();
+  }
+}
+
+function handleGlobalKeydown(event) {
+  if (event.key === "Escape" && !elements.lightbox.classList.contains("hidden")) {
+    closeLightbox();
+  }
 }
 
 function extractFilename(filePath) {
@@ -724,4 +1423,13 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function escapeXml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }

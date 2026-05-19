@@ -7,8 +7,9 @@ from bs4 import BeautifulSoup
 
 from climate_visualization_utils import (
     ARTICLE_FETCH_DELAY,
+    API_PAGE_DELAY_SECONDS,
+    MAX_ARTICLES_PER_WINDOW_TERM,
     SEARCH_TERMS,
-    SLEEP_SECONDS,
     download_article_charts,
     extract_published_date_from_html,
     ensure_output_dirs,
@@ -25,7 +26,7 @@ from climate_visualization_utils import (
 BASE_SEARCH_URL = "https://www.bbc.co.uk/search"
 NEWSPAPER = "BBC News"
 NEWSPAPER_SLUG = "bbc"
-MAX_PAGES = 10
+MAX_PAGES = 50
 
 ARTICLE_ROOT_SELECTORS = [
     "main",
@@ -105,8 +106,15 @@ def main():
 
     for term in SEARCH_TERMS:
         print(f"\n[INFO] Searching BBC for: {term}")
+        per_window_counts = {slug: 0 for slug in active_window_slugs}
 
         for page in range(1, MAX_PAGES + 1):
+            if all(count >= MAX_ARTICLES_PER_WINDOW_TERM for count in per_window_counts.values()):
+                print(
+                    f"[INFO] Reached article cap for all active BBC windows for {term}: "
+                    f"{MAX_ARTICLES_PER_WINDOW_TERM} per window-term."
+                )
+                break
             search_url = build_search_url(term, page)
             html = safe_get_text(session, search_url, context=f"BBC search {term} page {page}")
             if not html:
@@ -117,7 +125,11 @@ def main():
                 print(f"[INFO] No results on page {page} for {term}; stopping pagination.")
                 break
 
-            print(f"[INFO] Term {term} | page {page}/{MAX_PAGES} | results: {len(search_results)}")
+            counts_text = ", ".join(
+                f"{slug}:{count}/{MAX_ARTICLES_PER_WINDOW_TERM}"
+                for slug, count in sorted(per_window_counts.items())
+            )
+            print(f"[INFO] Term {term} | page {page}/{MAX_PAGES} | results: {len(search_results)} | {counts_text}")
 
             for item in search_results:
                 article_url = item["article_url"]
@@ -132,6 +144,8 @@ def main():
                 pub_date = extract_published_date_from_html(article_html) or item["published_date"]
                 matched_window = match_window_for_date(pub_date)
                 if not matched_window or matched_window["slug"] not in active_window_slugs:
+                    continue
+                if per_window_counts[matched_window["slug"]] >= MAX_ARTICLES_PER_WINDOW_TERM:
                     continue
                 seen_article_urls.add(article_url)
                 article_title = truncate_text(item["title"], 500)
@@ -173,6 +187,7 @@ def main():
                         "image_count": len(before_image_rows),
                     }
                 )
+                per_window_counts[matched_window["slug"]] += 1
                 if after_image_rows:
                     article_rows_after.append(
                         {
@@ -181,7 +196,7 @@ def main():
                         }
                     )
 
-            time.sleep(SLEEP_SECONDS)
+            time.sleep(API_PAGE_DELAY_SECONDS)
 
     before_articles_df, before_images_df = save_outputs(
         article_rows_before, image_rows_before, ARTICLES_BEFORE_CSV, IMAGES_BEFORE_CSV

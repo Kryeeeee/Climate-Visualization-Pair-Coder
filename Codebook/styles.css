@@ -98,7 +98,7 @@ h1 {
 /* ─── workspace ─── */
 .workspace {
   display: grid;
-  grid-template-columns: minmax(300px, 36%) minmax(500px, 64%);
+  grid-template-columns: minmax(420px, 44%) minmax(520px, 56%);
   gap: 16px;
   padding: 16px 24px 24px;
   align-items: start;
@@ -114,8 +114,16 @@ h1 {
   align-content: start;
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
   padding-right: 4px;
+}
+
+.left-column {
+  overflow: hidden;
+  display: flex;
+}
+
+.right-column {
+  overflow-y: auto;
 }
 
 /* ─── panel ─── */
@@ -125,6 +133,21 @@ h1 {
   border-radius: var(--radius);
   box-shadow: var(--shadow-xs);
   padding: 16px 18px 18px;
+}
+
+.image-pair-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.row-status-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 10px;
 }
 
 .panel h2 {
@@ -176,8 +199,9 @@ h1 {
 .field textarea {
   height: auto;
   padding: 8px 10px;
-  resize: vertical;
-  min-height: 72px;
+  resize: none;
+  min-height: 34px;
+  overflow: hidden;
 }
 
 .field input:hover:not([readonly]),
@@ -253,6 +277,12 @@ h1 {
   margin-top: 8px;
 }
 
+.row-review-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .progress-pill {
   display: inline-flex;
   align-items: center;
@@ -270,7 +300,8 @@ h1 {
 
 /* ─── preview ─── */
 .preview {
-  min-height: 220px;
+  min-height: 0;
+  height: 100%;
   margin-top: 8px;
   border: 1.5px dashed var(--line-strong);
   border-radius: var(--radius-sm);
@@ -283,7 +314,135 @@ h1 {
   color: var(--muted);
   font-size: 0.8rem;
 }
-.preview img { width: 100%; max-height: 440px; object-fit: contain; border-radius: 5px; }
+.preview img { width: 100%; max-height: 100%; object-fit: contain; border-radius: 5px; }
+
+.preview-trigger {
+  width: 100%;
+  height: 100%;
+  min-height: 236px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.preview-trigger img {
+  width: 100%;
+  height: 100%;
+}
+
+.saved-preview-note {
+  max-width: 28ch;
+  text-align: center;
+  color: var(--muted-2);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.image-pair-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+.image-card {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.image-card h3 {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.image-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 10px;
+}
+
+.inline-upload {
+  min-width: 180px;
+}
+
+.inline-upload.spacer {
+  visibility: hidden;
+}
+
+.inline-upload > span {
+  margin-bottom: 4px;
+}
+
+.readonly-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.field-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--accent-text);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.field-link:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.field-link.disabled {
+  pointer-events: none;
+  color: var(--muted);
+  background: var(--panel-soft);
+}
+
+.custom-field-builder {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.custom-field-editor.hidden,
+.field-card-delete.hidden {
+  display: none;
+}
+
+.custom-field-toggle-btn.hidden {
+  display: none;
+}
+
+.custom-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.custom-field-actions {
+  display: flex;
+  gap: 8px;
+}
 
 /* ─── codebook sections ─── */
 .sections { display: grid; gap: 10px; }
@@ -351,6 +510,13 @@ h1 {
 .field-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-xs); }
 
 .field-card-head { display: flex; flex-direction: column; gap: 1px; margin-bottom: 8px; }
+
+.field-card-head.with-delete {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
 
 .field-card-label { font-size: 0.82rem; font-weight: 700; color: var(--text); }
 
@@ -501,12 +667,74 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .table-action:hover { background: var(--danger-soft); }
 
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(17, 17, 17, 0.86);
+}
+
+.lightbox.hidden {
+  display: none;
+}
+
+.lightbox-stage {
+  max-width: min(92vw, 1400px);
+  max-height: 90vh;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.lightbox-stage img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.lightbox-caption {
+  margin: 0;
+  color: #f5f5f5;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+.table-action:hover { background: var(--danger-soft); }
+
 /* ─── responsive ─── */
 @media (max-width: 1100px) {
-  .workspace, .hero, .grid.two { grid-template-columns: 1fr; }
+  .hero, .grid.two { grid-template-columns: 1fr; }
+  .custom-field-grid,
+  .row-status-tools { grid-template-columns: 1fr; }
   .compact-grid { grid-template-columns: 1fr; }
+  .image-pair-grid { grid-template-columns: 1fr; }
   .hero { padding: 14px 18px; }
   .workspace { padding: 0 16px 20px; overflow: auto; }
   .left-column, .right-column { height: auto; overflow: visible; padding-right: 0; }
+  .image-card-head,
+  .readonly-link-row { grid-template-columns: 1fr; display: grid; }
   .hero-actions { justify-content: flex-start; }
 }

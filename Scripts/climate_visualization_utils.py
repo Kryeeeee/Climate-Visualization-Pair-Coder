@@ -13,6 +13,9 @@ REQUEST_TIMEOUT = 30
 MAX_TEXT_CHARS = 5000
 SLEEP_SECONDS = 0.25
 ARTICLE_FETCH_DELAY = 1.0
+API_PAGE_DELAY_SECONDS = 1.0
+NYT_PAGE_DELAY_SECONDS = 3.0
+MAX_ARTICLES_PER_WINDOW_TERM = 250
 RETRY_STATUS_CODES = {403, 429, 500, 502, 503, 504}
 
 IPCC_WINDOWS = [
@@ -178,13 +181,26 @@ def make_session():
     return session
 
 
-def request_with_retries(session, url, params=None, context="request", stream=False, max_attempts=4):
+def get_retry_wait_seconds(response=None, attempt=1):
+    if response is not None:
+        retry_after = response.headers.get("Retry-After")
+        if retry_after:
+            try:
+                return max(1.0, min(float(retry_after), 60.0))
+            except ValueError:
+                pass
+        if response.status_code == 429:
+            return min(5 * (2 ** (attempt - 1)), 60)
+    return min(2 ** (attempt - 1), 16)
+
+
+def request_with_retries(session, url, params=None, context="request", stream=False, max_attempts=5):
     last_exc = None
     for attempt in range(1, max_attempts + 1):
         try:
             response = session.get(url, params=params, timeout=REQUEST_TIMEOUT, stream=stream)
             if response.status_code in RETRY_STATUS_CODES and attempt < max_attempts:
-                wait_seconds = min(2 ** (attempt - 1), 8)
+                wait_seconds = get_retry_wait_seconds(response=response, attempt=attempt)
                 print(f"[WARN] {context}: HTTP {response.status_code}, retrying in {wait_seconds}s...")
                 response.close()
                 time.sleep(wait_seconds)
@@ -194,7 +210,7 @@ def request_with_retries(session, url, params=None, context="request", stream=Fa
         except requests.RequestException as exc:
             last_exc = exc
             if attempt < max_attempts:
-                wait_seconds = min(2 ** (attempt - 1), 8)
+                wait_seconds = get_retry_wait_seconds(attempt=attempt)
                 print(f"[WARN] {context}: {exc}. Retrying in {wait_seconds}s...")
                 time.sleep(wait_seconds)
                 continue
@@ -202,9 +218,9 @@ def request_with_retries(session, url, params=None, context="request", stream=Fa
     raise last_exc
 
 
-def safe_get_json(session, url, params=None, context="request"):
+def safe_get_json(session, url, params=None, context="request", max_attempts=5):
     try:
-        response = request_with_retries(session, url, params=params, context=context)
+        response = request_with_retries(session, url, params=params, context=context, max_attempts=max_attempts)
         return response.json()
     except requests.RequestException as exc:
         print(f"[ERROR] {context}: {exc}")
@@ -214,9 +230,9 @@ def safe_get_json(session, url, params=None, context="request"):
         return None
 
 
-def safe_get_text(session, url, context="request"):
+def safe_get_text(session, url, context="request", max_attempts=5):
     try:
-        response = request_with_retries(session, url, context=context)
+        response = request_with_retries(session, url, context=context, max_attempts=max_attempts)
         return response.text
     except requests.RequestException as exc:
         print(f"[ERROR] {context}: {exc}")

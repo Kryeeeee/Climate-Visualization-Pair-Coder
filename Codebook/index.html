@@ -26,12 +26,44 @@
 
   <main class="workspace">
     <section class="left-column">
+      <section class="panel image-pair-panel">
+        <h2>Image pair</h2>
+        <div class="image-pair-grid">
+          <section class="image-card">
+            <div class="image-card-head">
+              <h3>Media adaptation</h3>
+              <div class="inline-upload spacer" aria-hidden="true"></div>
+            </div>
+            <div id="mediaPreview" class="preview">No media image selected</div>
+          </section>
+          <section class="image-card">
+            <div class="image-card-head">
+              <h3>Original scientific figure</h3>
+              <label class="field inline-upload">
+                <span>Upload original scientific image</span>
+                <input id="source_image" type="file" accept="image/*" aria-label="Upload original scientific image">
+              </label>
+            </div>
+            <div id="sourcePreview" class="preview">No original scientific image selected</div>
+          </section>
+        </div>
+      </section>
+    </section>
+
+    <section class="right-column">
       <section class="panel">
         <h2>Media adaptation</h2>
         <div class="field">
           <span>Import scraped media image CSV</span>
-          <input id="csvInput" type="file" accept=".csv,text/csv">
+            <input id="csvInput" type="file" accept=".csv,text/csv" aria-label="Import scraped media image CSV">
         </div>
+        <div class="row-status-tools">
+            <label class="field">
+              <span>Import status file</span>
+              <input id="rowStatusCsvInput" type="file" accept=".csv,text/csv,.xml,text/xml,application/xml,.xls,application/vnd.ms-excel" aria-label="Import status file">
+            </label>
+            <button id="exportRowStatusBtn" class="button subtle small" type="button">Export status file</button>
+          </div>
         <div class="grid two compact-grid">
           <label class="field">
             <span>Select imported media image</span>
@@ -41,7 +73,7 @@
           </label>
           <label class="field">
             <span>Or upload media image file</span>
-            <input id="media_image" type="file" accept="image/*">
+              <input id="media_image" type="file" accept="image/*" aria-label="Upload media image file">
           </label>
         </div>
         <div class="nav-actions">
@@ -49,21 +81,13 @@
           <div id="mediaRowProgress" class="progress-pill">0 / 0</div>
           <button id="nextRowBtn" class="button subtle small" type="button">Next</button>
         </div>
-        <div id="mediaCsvSummary" class="summary-box">No media image row selected.</div>
-        <div id="mediaPreview" class="preview">No media image selected</div>
-      </section>
-
-      <section class="panel">
-        <h2>Original scientific figure</h2>
-        <div class="field">
-          <span>Upload original scientific image</span>
-          <input id="source_image" type="file" accept="image/*">
+        <div class="row-review-actions">
+          <button id="markNotImportantBtn" class="button subtle small" type="button">Mark not important</button>
+          <button id="deleteRowBtn" class="button subtle danger small" type="button">Delete row</button>
         </div>
-        <div id="sourcePreview" class="preview">No original scientific image selected</div>
+        <div id="mediaCsvSummary" class="summary-box">No media image row selected.</div>
       </section>
-    </section>
 
-    <section class="right-column">
       <section class="panel">
         <h2>Pair metadata</h2>
         <div class="grid two">
@@ -94,9 +118,14 @@
             <span>Source figure ID</span>
             <input id="source_figure_id" type="text" placeholder="e.g. AR5 WGI SPM.7 or Figure 3">
           </label>
-          <label class="field full readonly">
+          <label class="field full">
             <span>Media outlet</span>
-            <input id="media_outlet" type="text" readonly>
+            <input id="media_outlet" type="text" list="mediaOutletOptions" placeholder="Select or type a media outlet">
+            <datalist id="mediaOutletOptions">
+              <option value="BBC News"></option>
+              <option value="The Guardian"></option>
+              <option value="The New York Times"></option>
+            </datalist>
           </label>
           <label class="field full readonly">
             <span>Media article title</span>
@@ -104,7 +133,10 @@
           </label>
           <label class="field full readonly">
             <span>Media article URL</span>
-            <input id="media_article_url" type="text" readonly>
+            <div class="readonly-link-row">
+              <input id="media_article_url" type="text" readonly>
+              <a id="mediaArticleUrlLink" class="field-link disabled" href="#" target="_blank" rel="noopener noreferrer">Open article</a>
+            </div>
           </label>
           <label class="field readonly">
             <span>Media publication date</span>
@@ -122,7 +154,7 @@
       </section>
 
       <section class="panel">
-        <h2>Notes and quality control</h2>
+        <h2>Notes</h2>
         <div class="grid two">
           <label class="field">
             <span>Overall adaptation intensity</span>
@@ -144,7 +176,7 @@
           </label>
           <label class="field full">
             <span>Coder notes</span>
-            <textarea id="coder_notes" rows="5" placeholder="Notes about ambiguity, interpretation, or missing context."></textarea>
+            <textarea id="coder_notes" rows="1" placeholder="Notes about ambiguity, interpretation, or missing context."></textarea>
           </label>
         </div>
       </section>
@@ -189,12 +221,49 @@
   <template id="fieldCardTemplate">
     <div class="field-card">
       <div class="field-card-head">
-        <label class="field-card-label"></label>
-        <p class="field-card-help"></p>
+        <div class="field-card-copy">
+          <label class="field-card-label"></label>
+          <p class="field-card-help"></p>
+        </div>
+        <button type="button" class="field-card-delete button subtle danger small hidden">Delete item</button>
       </div>
       <div class="chip-group"></div>
     </div>
   </template>
+
+  <template id="customFieldTemplate">
+    <div class="custom-field-builder">
+      <button type="button" class="button subtle small custom-field-toggle-btn">Add custom item</button>
+      <div class="custom-field-editor hidden">
+        <div class="custom-field-grid">
+          <label class="field">
+            <span>Custom item name</span>
+            <input type="text" class="custom-field-label" placeholder="e.g. Reference framing">
+          </label>
+          <label class="field">
+            <span>Short explanation</span>
+            <input type="text" class="custom-field-help" placeholder="What exactly should coders look for?">
+          </label>
+          <label class="field full">
+            <span>Specific categories</span>
+            <input type="text" class="custom-field-options" placeholder="Comma-separated, e.g. absent, implicit, explicit">
+          </label>
+        </div>
+        <div class="custom-field-actions">
+          <button type="button" class="button subtle small custom-field-add-btn">Add custom item</button>
+          <button type="button" class="button subtle small custom-field-cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <div id="imageLightbox" class="lightbox hidden" aria-hidden="true">
+    <button id="lightboxCloseBtn" class="lightbox-close" type="button" aria-label="Close image preview">×</button>
+    <div class="lightbox-stage">
+      <img id="lightboxImage" alt="">
+      <p id="lightboxCaption" class="lightbox-caption"></p>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

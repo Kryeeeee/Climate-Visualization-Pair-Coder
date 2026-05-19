@@ -2,8 +2,9 @@ from pathlib import Path
 import time
 
 from climate_visualization_utils import (
+    API_PAGE_DELAY_SECONDS,
+    MAX_ARTICLES_PER_WINDOW_TERM,
     SEARCH_TERMS,
-    SLEEP_SECONDS,
     download_article_charts,
     ensure_output_dirs,
     get_active_windows,
@@ -21,7 +22,7 @@ NEWSPAPER = "The Guardian"
 NEWSPAPER_SLUG = "guardian"
 
 PAGE_SIZE = 50
-MAX_PAGES = 20
+MAX_PAGES = 50
 
 ARTICLE_ROOT_SELECTORS = [
     "div[itemprop='articleBody']",
@@ -53,8 +54,13 @@ def main():
             print(f"\n[INFO] Searching Guardian for {window['slug']}: {term}")
             current_page = 1
             total_pages = 1
+            collected_count = 0
 
-            while current_page <= total_pages and current_page <= MAX_PAGES:
+            while (
+                current_page <= total_pages
+                and current_page <= MAX_PAGES
+                and collected_count < MAX_ARTICLES_PER_WINDOW_TERM
+            ):
                 params = {
                     "q": term,
                     "api-key": API_KEY,
@@ -85,10 +91,13 @@ def main():
 
                 print(
                     f"[INFO] Window {window['slug']} | term {term} | "
-                    f"page {current_page}/{total_pages} | results: {len(results)}"
+                    f"page {current_page}/{total_pages} | results: {len(results)} | "
+                    f"articles: {collected_count}/{MAX_ARTICLES_PER_WINDOW_TERM}"
                 )
 
                 for article in results:
+                    if collected_count >= MAX_ARTICLES_PER_WINDOW_TERM:
+                        break
                     article_url = (article.get("webUrl") or "").strip()
                     if not article_url or article_url in seen_article_urls:
                         continue
@@ -135,6 +144,7 @@ def main():
                             "image_count": len(before_image_rows),
                         }
                     )
+                    collected_count += 1
                     if after_image_rows:
                         article_rows_after.append(
                             {
@@ -144,7 +154,7 @@ def main():
                         )
 
                 current_page += 1
-                time.sleep(SLEEP_SECONDS)
+                time.sleep(API_PAGE_DELAY_SECONDS)
 
     before_articles_df, before_images_df = save_outputs(
         article_rows_before, image_rows_before, ARTICLES_BEFORE_CSV, IMAGES_BEFORE_CSV
