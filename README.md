@@ -24,5 +24,5 @@ Use `Import status file` / `Export status file` to track progress. Share the sam
 
 ## Notes
 
-- `Mark not important` hides a row from the current coding queue; `Delete row` removes a row from the current coding queue. These actions affect the local status, not the original `images.csv`.
+- `Mark not important` hides a row from the current coding queue. `Mark source unclear` marks that the original source is unclear. `Delete row` removes a row from the current coding queue. These actions affect the local status, not the original `images.csv`.
 - You can manually add new values for `Source organization` and `Media outlet`, and add custom items in each `Transformation coding` section.
