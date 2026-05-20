@@ -171,6 +171,7 @@ const elements = {
   prevRowBtn: document.getElementById("prevRowBtn"),
   nextRowBtn: document.getElementById("nextRowBtn"),
   markNotImportantBtn: document.getElementById("markNotImportantBtn"),
+  markSourceUnclearBtn: document.getElementById("markSourceUnclearBtn"),
   deleteRowBtn: document.getElementById("deleteRowBtn"),
   mediaRowProgress: document.getElementById("mediaRowProgress"),
   mediaImageInput: document.getElementById("media_image"),
@@ -224,6 +225,7 @@ function init() {
   elements.prevRowBtn.addEventListener("click", () => moveMediaSelection(-1));
   elements.nextRowBtn.addEventListener("click", () => moveMediaSelection(1));
   elements.markNotImportantBtn.addEventListener("click", () => setCurrentRowDisposition("not_important"));
+  elements.markSourceUnclearBtn.addEventListener("click", markCurrentRowSourceUnclear);
   elements.deleteRowBtn.addEventListener("click", () => setCurrentRowDisposition("deleted"));
   elements.sourceOrganizationInput.addEventListener("input", updateRecordId);
   elements.sourceFigureInput.addEventListener("input", updateRecordId);
@@ -504,6 +506,7 @@ function populateMediaCsvSelect() {
       row.article_title || row.article_id || "Untitled",
       row.image_index ? `img ${row.image_index}` : "",
       state.disposition === "completed" && state.completed_by ? `done:${state.completed_by}` : "",
+      state.source_unclear ? "source unclear" : "",
     ].filter(Boolean).join(" | ");
     options.push(`<option value="${row.__rowIndex}">${escapeHtml(label)}</option>`);
   });
@@ -544,17 +547,18 @@ function applyMediaRow(row) {
   document.getElementById("media_publication_date").value = row.published_date || "";
   syncMediaArticleLink(row.article_url || "");
   const state = getRowState(row);
-  const statusLine = state.disposition === "completed"
+  const dispositionLine = state.disposition === "completed"
     ? `<strong>Status:</strong> completed by ${escapeHtml(state.completed_by || "unknown")}<br>`
     : state.disposition === "not_important"
       ? `<strong>Status:</strong> marked not important<br>`
       : state.disposition === "deleted"
         ? `<strong>Status:</strong> deleted from queue<br>`
         : "";
+  const sourceUnclearLine = state.source_unclear ? "<strong>Source note:</strong> marked source unclear<br>" : "";
   elements.mediaCsvSummary.innerHTML = `
-    ${statusLine}
-    <strong>Image file:</strong> ${escapeHtml(extractFilename(row.local_image_path || ""))}
-  `;
+      ${dispositionLine}${sourceUnclearLine}
+      <strong>Image file:</strong> ${escapeHtml(extractFilename(row.local_image_path || ""))}
+    `;
   if (!currentFiles.media_image) {
     renderPreviewFromPath(elements.mediaPreview, row.local_image_path || "", "No media image selected");
   }
@@ -593,6 +597,7 @@ function updateNavigationButtons() {
   elements.nextRowBtn.disabled = !hasRows || currentIndex === -1 || currentIndex >= rows.length - 1;
   elements.saveNextBtn.disabled = !hasRows;
   elements.markNotImportantBtn.disabled = !hasRows || currentIndex === -1;
+  elements.markSourceUnclearBtn.disabled = !hasRows || currentIndex === -1;
   elements.deleteRowBtn.disabled = !hasRows || currentIndex === -1;
   const displayIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
   elements.mediaRowProgress.textContent = `${displayIndex} / ${rows.length}`;
@@ -1129,6 +1134,21 @@ function markCurrentRowCompleted(record) {
   }
 }
 
+function markCurrentRowSourceUnclear() {
+  if (!currentMediaRow?.__rowKey) return;
+  const group = currentMediaRow.__sourceGroup || "other";
+  rowState[group][currentMediaRow.__rowKey] = {
+    ...(rowState[group][currentMediaRow.__rowKey] || {}),
+    source_unclear: true,
+    updated_by: getFormValue("coder_name"),
+    updated_at: new Date().toISOString(),
+  };
+  persistRowState();
+  populateMediaCsvSelect();
+  elements.mediaCsvSelect.value = currentMediaRow.__rowIndex;
+  handleMediaRowSelection();
+}
+
 function setCurrentRowDisposition(disposition) {
   if (!currentMediaRow?.__rowKey) return;
   if (disposition === "deleted" && !confirm("Delete this media row from the current coding queue?")) {
@@ -1231,7 +1251,7 @@ function syncMediaArticleLink(url) {
 }
 
 function exportRowStatusCsv() {
-  const headers = ["row_key", "disposition", "completed_by", "completed_at", "record_id", "updated_by", "updated_at"];
+  const headers = ["row_key", "disposition", "source_unclear", "completed_by", "completed_at", "record_id", "updated_by", "updated_at"];
   downloadBlob(buildRowStatusWorkbookXml(headers), "row_status.xls", "application/vnd.ms-excel");
 }
 
@@ -1273,6 +1293,7 @@ function buildRowStatusWorkbookXml(headers) {
     const rows = Object.entries(rowState[group] || {}).map(([rowKey, state]) => ({
       row_key: rowKey,
       disposition: state.disposition || "",
+      source_unclear: state.source_unclear ? "true" : "",
       completed_by: state.completed_by || "",
       completed_at: state.completed_at || "",
       record_id: state.record_id || "",
@@ -1306,11 +1327,12 @@ function parseLegacyRowStatusCsv(csvText) {
     if (!rowKey) return;
     const requestedGroup = (row.group || "").trim().toLowerCase();
     const group = rowStatusGroups.includes(requestedGroup) ? requestedGroup : currentImportedSourceGroup;
-    grouped[group][rowKey] = {
-      disposition: (row.disposition || "").trim() || "active",
-      completed_by: (row.completed_by || "").trim(),
-      completed_at: (row.completed_at || "").trim(),
-      record_id: (row.record_id || "").trim(),
+      grouped[group][rowKey] = {
+        disposition: (row.disposition || "").trim() || "active",
+        source_unclear: ["true", "1", "yes"].includes((row.source_unclear || "").trim().toLowerCase()),
+        completed_by: (row.completed_by || "").trim(),
+        completed_at: (row.completed_at || "").trim(),
+        record_id: (row.record_id || "").trim(),
       updated_by: (row.updated_by || "").trim(),
       updated_at: (row.updated_at || "").trim(),
     };
@@ -1342,11 +1364,12 @@ function parseRowStatusWorkbook(xmlText) {
       });
       const rowKey = (rowObject.row_key || "").trim();
       if (!rowKey) return;
-      grouped[groupName][rowKey] = {
-        disposition: (rowObject.disposition || "").trim() || "active",
-        completed_by: (rowObject.completed_by || "").trim(),
-        completed_at: (rowObject.completed_at || "").trim(),
-        record_id: (rowObject.record_id || "").trim(),
+        grouped[groupName][rowKey] = {
+          disposition: (rowObject.disposition || "").trim() || "active",
+          source_unclear: ["true", "1", "yes"].includes((rowObject.source_unclear || "").trim().toLowerCase()),
+          completed_by: (rowObject.completed_by || "").trim(),
+          completed_at: (rowObject.completed_at || "").trim(),
+          record_id: (rowObject.record_id || "").trim(),
         updated_by: (rowObject.updated_by || "").trim(),
         updated_at: (rowObject.updated_at || "").trim(),
       };
