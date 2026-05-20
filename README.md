@@ -6,16 +6,16 @@
    - `bbc_images.csv`
    - `guardian_images.csv`
    - `nytimes_images.csv`
-2. Import the status file.
+2. Import the latest `status.xls` from Google Drive: https://drive.google.com/drive/folders/1SXc_id4yTMz2i4aqLveLccZUIxrz92-O.
 3. Select a media image row, or upload a media image manually.
 4. Upload the original scientific figure.
 5. Fill in pair metadata and complete the transformation coding fields.
 6. Click `Save coded pair` or `Save and next`.
-7. When you finish coding, export the status file and the coded CSV.
+7. When you finish coding, copy your newly completed entries into the existing `status.xls` and `climate_visualization_coding.csv` in Google Drive: https://drive.google.com/drive/folders/1SXc_id4yTMz2i4aqLveLccZUIxrz92-O. The next coding session should start by importing the latest `status.xls`.
 
 ## Collaboration
 
-Use `Import status file` / `Export status file` to track progress. Share the same `images.csv` and the same exported status file. Each coder imports both before coding.
+Use `Import status file` / `Export status file` to track progress. Share the same `images.csv`. Each coder should import the latest shared `status.xls` before coding, then merge newly completed entries back into the shared `status.xls` and `climate_visualization_coding.csv`.
 
 - rows from `bbc_images.csv` go to `bbc`
 - rows from `guardian_images.csv` go to `guardian`
