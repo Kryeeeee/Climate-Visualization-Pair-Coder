@@ -18,8 +18,8 @@
 Use `Import status file` / `Export status file` to track progress. Share the same `images.csv`. Each coder should import the latest shared `status.xls` before coding, then merge newly completed entries back into the shared `status.xls` and `climate_visualization_coding.csv`.
 
 - rows from `Scripts/output/bbc/bbc_images.csv` go to `bbc`
-- rows from `Scripts/output/bbc/bbc_images.csv/guardian_images.csv` go to `guardian`
-- rows from `Scripts/output/bbc/bbc_images.csv/nytimes_images.csv` go to `nytimes`
+- rows from `Scripts/output/guardian/guardian_images.csv` go to `guardian`
+- rows from `Scripts/output/nytimes/nytimes_images.csv` go to `nytimes`
 - manually uploaded media images go to `other`
 
 ## Notes
