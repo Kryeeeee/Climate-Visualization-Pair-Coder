@@ -394,9 +394,10 @@ function renderPreviewFromPath(target, filePath, fallbackText) {
     return;
   }
   const normalizedPath = filePath.replace(/\\/g, "/");
-  const pathWithLeadingSlash = normalizedPath.match(/^[A-Za-z]:\//) ? `/${normalizedPath}` : normalizedPath;
-  const fileUrl = `file://${encodeURI(pathWithLeadingSlash)}`;
-  renderPreviewFromSource(target, fileUrl, extractFilename(filePath), fallbackText);
+  const sourceUrl = normalizedPath.match(/^[A-Za-z]:\//)
+    ? `file://${encodeURI(`/${normalizedPath}`)}`
+    : encodeURI(normalizedPath);
+  renderPreviewFromSource(target, sourceUrl, extractFilename(filePath), fallbackText);
 }
 
 function renderPreviewFromDataUrl(target, dataUrl, caption, fallbackText) {
