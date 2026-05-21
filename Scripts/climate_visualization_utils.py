@@ -508,6 +508,10 @@ def candidate_to_image_row(
     }
 
 
+def make_codebook_relative_image_path(newspaper_slug, image_name):
+    return str(Path("..") / "Scripts" / "output" / newspaper_slug / "images" / image_name).replace("\\", "/")
+
+
 def extract_published_date_from_html(html):
     if not html:
         return ""
@@ -615,7 +619,7 @@ def download_article_charts(
                     article_url=article_url,
                     published_date=published_date,
                     image_index=index,
-                    local_image_path=str(image_path),
+                    local_image_path=make_codebook_relative_image_path(newspaper_slug, image_name),
                 )
             )
 
