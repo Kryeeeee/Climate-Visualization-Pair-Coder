@@ -3,7 +3,7 @@
 ## How to use
 
 1. Open `Codebook/index.html` in a browser.
-2. Make sure the corresponding media image files are available on the current computer. 
+2. Make sure the corresponding media image files are available on the current computer.
 3. Import one outlet image CSV from `Scripts/output/bbc or guardian or nytimes/`:
    - `bbc_images.csv`
    - `guardian_images.csv`
