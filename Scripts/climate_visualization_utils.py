@@ -118,6 +118,52 @@ PHOTO_KEYWORDS = [
     "still image",
 ]
 
+NYT_MULTIMEDIA_CHART_TERMS = [
+    "chart",
+    "graph",
+    "graphic",
+    "graphics",
+    "infographic",
+    "interactive",
+    "map",
+    "diagram",
+    "table",
+    "data",
+    "visualization",
+    "visualisation",
+    "tracker",
+]
+
+NYT_MULTIMEDIA_DATA_TERMS = [
+    "temperature",
+    "warming",
+    "emissions",
+    "carbon dioxide",
+    "co2",
+    "sea level",
+    "greenhouse gas",
+    "climate model",
+    "scenario",
+    "projection",
+    "record",
+    "source:",
+]
+
+NYT_MULTIMEDIA_PHOTO_TERMS = [
+    "photo",
+    "photograph",
+    "getty",
+    "reuters",
+    "associated press",
+    "ap photo",
+    "afp",
+    "epa",
+    "portrait",
+    "headshot",
+    "slideshow",
+    "video",
+]
+
 IMAGE_URL_ATTRIBUTES = [
     "src",
     "data-src",
@@ -215,7 +261,9 @@ def request_with_retries(session, url, params=None, context="request", stream=Fa
                 time.sleep(wait_seconds)
                 continue
             break
-    raise last_exc
+    if last_exc is not None:
+        raise last_exc
+    raise requests.RequestException(f"{context}: request failed after {max_attempts} attempts")
 
 
 def safe_get_json(session, url, params=None, context="request", max_attempts=5):
@@ -480,6 +528,45 @@ def filter_chart_candidates(candidates):
     return kept
 
 
+def text_for_candidate_matching(candidate):
+    return " ".join(
+        [
+            candidate.get("image_url", ""),
+            candidate.get("caption", ""),
+            candidate.get("credit", ""),
+            candidate.get("alt_text", ""),
+            candidate.get("context_text", ""),
+        ]
+    ).lower()
+
+
+def is_nyt_multimedia_chart_candidate(candidate):
+    combined = text_for_candidate_matching(candidate)
+    chart_hits = sorted({term for term in NYT_MULTIMEDIA_CHART_TERMS if term in combined})
+    data_hits = sorted({term for term in NYT_MULTIMEDIA_DATA_TERMS if term in combined})
+    photo_hits = sorted({term for term in NYT_MULTIMEDIA_PHOTO_TERMS if term in combined})
+    has_quantitative_signal = bool(
+        re.search(r"(%|°|\bppm\b|\b\d+(?:\.\d+)?\s?(?:c|f|percent|degrees?)\b)", combined)
+    )
+
+    if photo_hits and not chart_hits:
+        return False, chart_hits, data_hits, photo_hits
+    if chart_hits:
+        return True, chart_hits, data_hits, photo_hits
+    if data_hits and has_quantitative_signal and not photo_hits:
+        return True, chart_hits, data_hits, photo_hits
+    return False, chart_hits, data_hits, photo_hits
+
+
+def filter_nyt_multimedia_chart_candidates(candidates):
+    kept = []
+    for candidate in candidates:
+        keep, _, _, _ = is_nyt_multimedia_chart_candidate(candidate)
+        if keep:
+            kept.append(candidate)
+    return kept
+
+
 def candidate_to_image_row(
     candidate,
     article_id,
@@ -510,6 +597,142 @@ def candidate_to_image_row(
 
 def make_codebook_relative_image_path(newspaper_slug, image_name):
     return str(Path("..") / "Scripts" / "output" / newspaper_slug / "images" / image_name).replace("\\", "/")
+
+
+def download_candidate_images(
+    session,
+    candidates,
+    article_id,
+    newspaper,
+    newspaper_slug,
+    ipcc_window,
+    published_date,
+    search_term,
+    article_title,
+    article_url,
+    image_dir,
+    seen_image_urls,
+    require_chart_match=True,
+    candidate_filter=None,
+):
+    before_rows = []
+    after_rows = []
+    if candidate_filter:
+        downloadable_candidates = candidate_filter(candidates)
+    elif require_chart_match:
+        downloadable_candidates = filter_chart_candidates(candidates)
+    else:
+        downloadable_candidates = list(candidates)
+
+    for index, candidate in enumerate(candidates, start=1):
+        before_rows.append(
+            candidate_to_image_row(
+                candidate=candidate,
+                article_id=article_id,
+                newspaper=newspaper,
+                ipcc_window=ipcc_window,
+                search_term=search_term,
+                article_title=article_title,
+                article_url=article_url,
+                published_date=published_date,
+                image_index=index,
+            )
+        )
+
+    for index, candidate in enumerate(downloadable_candidates, start=1):
+        image_url = candidate["image_url"]
+        if image_url in seen_image_urls:
+            continue
+        seen_image_urls.add(image_url)
+
+        image_ext = infer_extension_from_url(image_url)
+        safe_date = published_date or "undated"
+        image_name = f"{newspaper_slug}_{safe_date}_{article_id}_img{index:02d}{image_ext}"
+        image_path = image_dir / image_name
+
+        if image_path.exists() or download_image(session, image_url, image_path):
+            after_rows.append(
+                candidate_to_image_row(
+                    candidate=candidate,
+                    article_id=article_id,
+                    newspaper=newspaper,
+                    ipcc_window=ipcc_window,
+                    search_term=search_term,
+                    article_title=article_title,
+                    article_url=article_url,
+                    published_date=published_date,
+                    image_index=index,
+                    local_image_path=make_codebook_relative_image_path(newspaper_slug, image_name),
+                )
+            )
+
+    return {"before_rows": before_rows, "after_rows": after_rows}
+
+
+def nyt_multimedia_to_candidates(multimedia_items):
+    candidates = []
+    seen_urls = set()
+
+    if isinstance(multimedia_items, dict):
+        if multimedia_items.get("url") or multimedia_items.get("legacy"):
+            iterable_items = [multimedia_items]
+        else:
+            iterable_items = multimedia_items.values()
+    else:
+        iterable_items = multimedia_items or []
+
+    for item in iterable_items:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("type", "image")).lower() not in {"image", ""}:
+            continue
+
+        image_url = item.get("url", "") or ""
+        if not image_url:
+            legacy = item.get("legacy") or {}
+            for key in ["xlarge", "articleimage", "articleLarge", "jumbo", "superJumbo"]:
+                if legacy.get(key):
+                    image_url = legacy[key]
+                    break
+        if not image_url:
+            continue
+
+        image_url = image_url if image_url.startswith(("http://", "https://")) else urljoin(
+            "https://static01.nyt.com/",
+            image_url.lstrip("/"),
+        )
+        if image_url in seen_urls:
+            continue
+        seen_urls.add(image_url)
+
+        caption = truncate_text(item.get("caption", ""), 600)
+        credit = truncate_text(item.get("copyright") or item.get("credit", ""), 300)
+        context_text = truncate_text(
+            " ".join(
+                filter(
+                    None,
+                    [
+                        item.get("format", ""),
+                        item.get("subtype", ""),
+                        item.get("crop_name", ""),
+                        item.get("slug_name", ""),
+                        item.get("caption", ""),
+                    ],
+                )
+            ),
+            600,
+        )
+        candidates.append(
+            {
+                "image_url": image_url,
+                "caption": caption,
+                "credit": credit,
+                "alt_text": "",
+                "context_text": context_text,
+            }
+        )
+
+    return candidates
 
 
 def extract_published_date_from_html(html):
@@ -579,48 +802,17 @@ def download_article_charts(
     before_rows = []
     after_rows = []
     all_candidates = extract_image_candidates(html, article_url, selectors)
-    chart_candidates = filter_chart_candidates(all_candidates)
-
-    for index, candidate in enumerate(all_candidates, start=1):
-        before_rows.append(
-            candidate_to_image_row(
-                candidate=candidate,
-                article_id=article_id,
-                newspaper=newspaper,
-                ipcc_window=ipcc_window,
-                search_term=search_term,
-                article_title=article_title,
-                article_url=article_url,
-                published_date=published_date,
-                image_index=index,
-            )
-        )
-
-    for index, candidate in enumerate(chart_candidates, start=1):
-        image_url = candidate["image_url"]
-        if image_url in seen_image_urls:
-            continue
-        seen_image_urls.add(image_url)
-
-        image_ext = infer_extension_from_url(image_url)
-        safe_date = published_date or "undated"
-        image_name = f"{newspaper_slug}_{safe_date}_{article_id}_img{index:02d}{image_ext}"
-        image_path = image_dir / image_name
-
-        if image_path.exists() or download_image(session, image_url, image_path):
-            after_rows.append(
-                candidate_to_image_row(
-                candidate=candidate,
-                    article_id=article_id,
-                    newspaper=newspaper,
-                    ipcc_window=ipcc_window,
-                    search_term=search_term,
-                    article_title=article_title,
-                    article_url=article_url,
-                    published_date=published_date,
-                    image_index=index,
-                    local_image_path=make_codebook_relative_image_path(newspaper_slug, image_name),
-                )
-            )
-
-    return {"before_rows": before_rows, "after_rows": after_rows}
+    return download_candidate_images(
+        session=session,
+        candidates=all_candidates,
+        article_id=article_id,
+        newspaper=newspaper,
+        newspaper_slug=newspaper_slug,
+        ipcc_window=ipcc_window,
+        published_date=published_date,
+        search_term=search_term,
+        article_title=article_title,
+        article_url=article_url,
+        image_dir=image_dir,
+        seen_image_urls=seen_image_urls,
+    )
