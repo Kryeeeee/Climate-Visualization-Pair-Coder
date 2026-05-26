@@ -18,7 +18,7 @@
     <div class="hero-actions">
       <button id="saveRecordBtn" class="button primary">Save coded pair</button>
       <button id="saveNextBtn" class="button dark">Save and next</button>
-      <button id="exportCsvBtn" class="button">Export CSV</button>
+      <button id="exportCsvBtn" class="button">Export</button>
       <button id="clearFormBtn" class="button subtle">Reset form</button>
       <button id="clearRecordsBtn" class="button subtle danger">Delete saved records</button>
     </div>
@@ -56,6 +56,10 @@
         <div class="field">
           <span>Import scraped media image CSV</span>
             <input id="csvInput" type="file" accept=".csv,text/csv" aria-label="Import scraped media image CSV">
+        </div>
+        <div class="field">
+          <span>Import media image files/folder for export</span>
+            <input id="mediaImageFilesInput" type="file" accept="image/*" multiple webkitdirectory aria-label="Import media image files or folder for export">
         </div>
         <div class="row-status-tools">
             <label class="field">

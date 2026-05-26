@@ -76,6 +76,12 @@ const codebookSections = [
         options: ["denser", "similar", "simpler"],
       },
       {
+        id: "layout_reordering",
+        label: "Layout reordering",
+        help: "Whether panels, legends, labels, annotations, or other visual components are rearranged relative to the source figure.",
+        options: ["none", "minor", "major"],
+      },
+      {
         id: "legend_dependency_change",
         label: "Legend dependency change",
         help: "Whether viewers must rely on legends more or less to read the figure.",
@@ -164,6 +170,7 @@ const elements = {
   sourcePreview: document.getElementById("sourcePreview"),
   mediaPreview: document.getElementById("mediaPreview"),
   csvInput: document.getElementById("csvInput"),
+  mediaImageFilesInput: document.getElementById("mediaImageFilesInput"),
   rowStatusCsvInput: document.getElementById("rowStatusCsvInput"),
   exportRowStatusBtn: document.getElementById("exportRowStatusBtn"),
   mediaCsvSelect: document.getElementById("mediaCsvSelect"),
@@ -207,6 +214,8 @@ let currentFileData = {
   source_image: null,
   media_image: null,
 };
+let importedMediaImageFiles = new Map();
+let importedMediaImageDataUrls = new Map();
 let currentImportedSourceGroup = "other";
 
 init();
@@ -219,6 +228,7 @@ function init() {
   elements.coderNotesInput.addEventListener("input", () => autoResizeTextarea(elements.coderNotesInput));
 
   elements.csvInput.addEventListener("change", handleCsvImport);
+  elements.mediaImageFilesInput.addEventListener("change", handleMediaImageFilesImport);
   elements.rowStatusCsvInput.addEventListener("change", handleRowStatusImport);
   elements.exportRowStatusBtn.addEventListener("click", exportRowStatusCsv);
   elements.mediaCsvSelect.addEventListener("change", handleMediaRowSelection);
@@ -261,6 +271,77 @@ function readFileAsDataUrl(file) {
     reader.onerror = () => reject(reader.error || new Error("Failed to read file."));
     reader.readAsDataURL(file);
   });
+}
+
+function readBlobAsDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result || "");
+    reader.onerror = () => reject(reader.error || new Error("Failed to read blob."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function previewImageToDataUrl(previewElement) {
+  const image = previewElement.querySelector("img");
+  if (!image || !image.complete || !image.naturalWidth || !image.naturalHeight) {
+    return "";
+  }
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d");
+    if (!context) return "";
+    context.drawImage(image, 0, 0);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return "";
+  }
+}
+
+function normalizeImageLookupKey(value) {
+  return String(value || "").replace(/\\/g, "/").toLowerCase().trim();
+}
+
+function imageLookupKeysForFile(file) {
+  return [
+    normalizeImageLookupKey(file.name),
+    normalizeImageLookupKey(file.webkitRelativePath || ""),
+  ].filter(Boolean);
+}
+
+function imageLookupKeysForRow(row) {
+  const localPath = normalizeImageLookupKey(row?.local_image_path || "");
+  const filename = normalizeImageLookupKey(extractFilename(localPath));
+  return [filename, localPath].filter(Boolean);
+}
+
+function findImportedMediaImageFile(rowOrPath) {
+  const keys = typeof rowOrPath === "string"
+    ? [normalizeImageLookupKey(extractFilename(rowOrPath)), normalizeImageLookupKey(rowOrPath)].filter(Boolean)
+    : imageLookupKeysForRow(rowOrPath);
+  for (const key of keys) {
+    if (importedMediaImageFiles.has(key)) return importedMediaImageFiles.get(key);
+  }
+  for (const [key, file] of importedMediaImageFiles.entries()) {
+    if (keys.some((lookupKey) => key.endsWith(`/${lookupKey}`) || lookupKey.endsWith(`/${key}`))) {
+      return file;
+    }
+  }
+  return null;
+}
+
+async function getImportedMediaImageDataUrl(rowOrPath) {
+  const file = findImportedMediaImageFile(rowOrPath);
+  if (!file) return "";
+  const cacheKey = normalizeImageLookupKey(file.webkitRelativePath || file.name);
+  if (importedMediaImageDataUrls.has(cacheKey)) {
+    return importedMediaImageDataUrls.get(cacheKey);
+  }
+  const dataUrl = await readFileAsDataUrl(file);
+  importedMediaImageDataUrls.set(cacheKey, dataUrl);
+  return dataUrl;
 }
 
 function renderCodebook(preservedSelections = null) {
@@ -423,6 +504,25 @@ function handleCsvImport(event) {
   reader.readAsText(file);
 }
 
+function handleMediaImageFilesImport(event) {
+  const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+  importedMediaImageFiles = new Map();
+  importedMediaImageDataUrls = new Map();
+  files.forEach((file) => {
+    imageLookupKeysForFile(file).forEach((key) => {
+      if (!importedMediaImageFiles.has(key)) {
+        importedMediaImageFiles.set(key, file);
+      }
+    });
+  });
+  if (currentMediaRow) {
+    hydrateMediaPreviewFromImportedFile(currentMediaRow);
+  }
+  const matchedCount = importedRows.filter((row) => findImportedMediaImageFile(row)).length;
+  const suffix = importedRows.length ? ` Matched ${matchedCount} of ${importedRows.length} imported CSV rows.` : "";
+  alert(`Imported ${files.length} media image file(s) for export.${suffix}`);
+}
+
 function detectSourceGroupFromFilename(filename) {
   const normalized = (filename || "").toLowerCase();
   if (normalized.includes("bbc")) return "bbc";
@@ -562,9 +662,22 @@ function applyMediaRow(row) {
     `;
   if (!currentFiles.media_image) {
     renderPreviewFromPath(elements.mediaPreview, row.local_image_path || "", "No media image selected");
+    hydrateMediaPreviewFromImportedFile(row);
   }
   updateRecordId();
   updateNavigationButtons();
+}
+
+async function hydrateMediaPreviewFromImportedFile(row) {
+  if (!row || currentFiles.media_image) return;
+  const dataUrl = await getImportedMediaImageDataUrl(row);
+  if (!dataUrl || currentMediaRow !== row) return;
+  renderPreviewFromDataUrl(
+    elements.mediaPreview,
+    dataUrl,
+    extractFilename(row.local_image_path || "") || "Media adaptation image",
+    "No media image selected"
+  );
 }
 
 function tryAutoMatchMediaFile(file) {
@@ -689,6 +802,13 @@ async function collectRecord() {
   record.media_uploaded_data_url = currentFiles.media_image
     ? (currentFileData.media_image || await readFileAsDataUrl(currentFiles.media_image))
     : activeLoadedRecord?.media_uploaded_data_url || "";
+  const importedMediaDataUrl = currentMediaRow ? await getImportedMediaImageDataUrl(currentMediaRow) : "";
+  const fetchedMediaDataUrl = !record.media_uploaded_data_url && !importedMediaDataUrl && record.media_csv_local_path
+    ? await fetchLocalImageDataUrl(record.media_csv_local_path)
+    : "";
+  record.media_csv_data_url = record.media_uploaded_data_url
+    ? ""
+    : (importedMediaDataUrl || fetchedMediaDataUrl || previewImageToDataUrl(elements.mediaPreview) || activeLoadedRecord?.media_csv_data_url || "");
   record.coded_at = new Date().toISOString();
 
   codebookSections.forEach((section) => {
@@ -728,11 +848,27 @@ function validateRecord(record, { forExport = false } = {}) {
   return requiredMessages;
 }
 
+function validateRecordImages(record) {
+  const requiredMessages = [];
+  if (!record.source_image_data_url) {
+    requiredMessages.push("Upload and save the original scientific image.");
+  }
+  if (!record.media_uploaded_data_url && !record.media_csv_data_url) {
+    requiredMessages.push("Import the media image files/folder or upload this media adaptation image, then save again.");
+  }
+  return requiredMessages;
+}
+
 async function saveCurrentRecord({ moveNextAfterSave = false } = {}) {
   updateRecordId();
   const record = await collectRecord();
   const validationErrors = validateRecord(record);
   if (validationErrors.length) {
+    return;
+  }
+  const imageErrors = validateRecordImages(record);
+  if (imageErrors.length) {
+    alert(imageErrors.join("\n"));
     return;
   }
 
@@ -989,31 +1125,97 @@ function loadRecords() {
   }
 }
 
-function exportCsv() {
+async function exportCsv() {
   if (!savedRecords.length) {
     alert("There are no saved records to export.");
     return;
   }
   const invalidRecord = savedRecords.find((record) => validateRecord(record, { forExport: true }).length > 0);
   if (invalidRecord) {
-    alert(`Cannot export because record "${invalidRecord.record_id}" still has empty required fields.`);
+    alert(`Cannot export because record "${invalidRecord.record_id}" is not fully coded. Source organization, Source figure ID, metadata, and all required coding fields must be complete.`);
+    return;
+  }
+  const invalidImageRecord = savedRecords.find((record) => validateRecordImages(record).length > 0);
+  if (invalidImageRecord) {
+    alert(`Cannot export because record "${invalidImageRecord.record_id}" does not contain exportable image data. Import the media image files/folder or upload the missing image, then save the pair again.`);
     return;
   }
   const headers = [
     ...metadataFields,
     "source_image_filename",
+    "source_image_export_path",
     "media_image_filename",
+    "media_image_export_path",
     "media_csv_local_path",
     "media_csv_article_id",
     "media_csv_image_url",
     ...codebookSections.flatMap((section) => section.fields.map((field) => field.id)),
     "coded_at",
   ];
-  downloadBlob(recordsToCsv(savedRecords, headers), "climate_visualization_coding.csv", "text/csv;charset=utf-8;");
+
+  const exportRows = savedRecords.map((record) => {
+    const sourceExportFilename = buildExportImageFilename(record, "source");
+    const mediaExportFilename = buildExportImageFilename(record, "media");
+    return {
+      ...record,
+      source_image_export_path: sourceExportFilename ? `source_figures/${sourceExportFilename}` : "",
+      media_image_export_path: mediaExportFilename ? `media_adaptations/${mediaExportFilename}` : "",
+    };
+  });
+  const csvContent = recordsToCsv(exportRows, headers);
+
+  try {
+    elements.exportCsvBtn.disabled = true;
+    elements.exportCsvBtn.textContent = "Exporting...";
+    const zipEntries = [
+      {
+        path: "climate_visualization_coding.csv",
+        data: textToUint8Array(csvContent),
+      },
+    ];
+    const missingImages = [];
+
+    for (const record of savedRecords) {
+      const sourceFilename = buildExportImageFilename(record, "source");
+      if (sourceFilename) {
+        const sourceBytes = await readRecordImageBytes(record, "source");
+        if (sourceBytes) {
+          zipEntries.push({ path: `source_figures/${sourceFilename}`, data: sourceBytes });
+        } else {
+          missingImages.push(`${record.record_id}: source image unavailable (${record.source_image_filename || "no filename"})`);
+        }
+      }
+
+      const mediaFilename = buildExportImageFilename(record, "media");
+      if (mediaFilename) {
+        const mediaBytes = await readRecordImageBytes(record, "media");
+        if (mediaBytes) {
+          zipEntries.push({ path: `media_adaptations/${mediaFilename}`, data: mediaBytes });
+        } else {
+          missingImages.push(`${record.record_id}: media image unavailable (${record.media_image_filename || record.media_csv_local_path || "no filename"})`);
+        }
+      }
+    }
+
+    if (missingImages.length) {
+      alert(`Export stopped because ${missingImages.length} image(s) are unavailable:\n${missingImages.join("\n")}`);
+      return;
+    }
+
+    zipEntries.push({
+      path: "missing_images.txt",
+      data: textToUint8Array(missingImages.length ? missingImages.join("\n") : "No missing images."),
+    });
+    const zipBlob = buildZipBlob(zipEntries);
+    downloadBlob(zipBlob, "climate_visualization_export.zip", "application/zip");
+  } finally {
+    elements.exportCsvBtn.disabled = false;
+    elements.exportCsvBtn.textContent = "Export";
+  }
 }
 
 function downloadBlob(content, filename, mimeType) {
-  const blob = new Blob([content], { type: mimeType });
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -1021,6 +1223,199 @@ function downloadBlob(content, filename, mimeType) {
   link.click();
   URL.revokeObjectURL(url);
 }
+
+function buildExportImageFilename(record, kind) {
+  const originalFilename = kind === "source"
+    ? record.source_image_filename
+    : record.media_image_filename || extractFilename(record.media_csv_local_path || "");
+  if (!originalFilename) return "";
+  const extension = getImageExtension(originalFilename, kind === "source" ? record.source_image_data_url : record.media_uploaded_data_url);
+  return `${slugify(record.record_id || "record")}__${kind}${extension}`;
+}
+
+function getImageExtension(filename, dataUrl = "") {
+  const dataMatch = String(dataUrl).match(/^data:image\/([a-zA-Z0-9.+-]+);/);
+  if (dataMatch) {
+    const normalized = dataMatch[1].toLowerCase();
+    if (normalized === "jpeg") return ".jpg";
+    if (normalized === "svg+xml") return ".svg";
+    return `.${normalized}`;
+  }
+  const filenameMatch = String(filename || "").match(/\.([a-zA-Z0-9]+)(?:[?#].*)?$/);
+  return filenameMatch ? `.${filenameMatch[1].toLowerCase()}` : ".png";
+}
+
+async function readRecordImageBytes(record, kind) {
+  if (kind === "source") {
+    return record.source_image_data_url ? dataUrlToUint8Array(record.source_image_data_url) : null;
+  }
+  if (record.media_uploaded_data_url) {
+    return dataUrlToUint8Array(record.media_uploaded_data_url);
+  }
+  if (record.media_csv_data_url) {
+    return dataUrlToUint8Array(record.media_csv_data_url);
+  }
+  if (!record.media_csv_local_path) {
+    return null;
+  }
+  return fetchLocalImageBytes(record.media_csv_local_path);
+}
+
+async function fetchLocalImageBytes(filePath) {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  const sourceUrl = normalizedPath.match(/^[A-Za-z]:\//)
+    ? `file://${encodeURI(`/${normalizedPath}`)}`
+    : encodeURI(normalizedPath);
+  try {
+    const response = await fetch(sourceUrl);
+    if (!response.ok) return null;
+    return new Uint8Array(await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+async function fetchLocalImageDataUrl(filePath) {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  const sourceUrl = normalizedPath.match(/^[A-Za-z]:\//)
+    ? `file://${encodeURI(`/${normalizedPath}`)}`
+    : encodeURI(normalizedPath);
+  try {
+    const response = await fetch(sourceUrl);
+    if (!response.ok) return "";
+    return readBlobAsDataUrl(await response.blob());
+  } catch {
+    return "";
+  }
+}
+
+function textToUint8Array(text) {
+  return new TextEncoder().encode(text);
+}
+
+function dataUrlToUint8Array(dataUrl) {
+  const parts = String(dataUrl).split(",");
+  if (parts.length < 2) return null;
+  const binary = atob(parts[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function buildZipBlob(entries) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  entries.forEach((entry) => {
+    const filenameBytes = textToUint8Array(entry.path.replace(/\\/g, "/"));
+    const data = entry.data instanceof Uint8Array ? entry.data : new Uint8Array(entry.data);
+    const crc = crc32(data);
+    const { dosTime, dosDate } = getZipDateTime();
+
+    const localHeader = concatUint8Arrays([
+      uint32le(0x04034b50),
+      uint16le(20),
+      uint16le(0x0800),
+      uint16le(0),
+      uint16le(dosTime),
+      uint16le(dosDate),
+      uint32le(crc),
+      uint32le(data.length),
+      uint32le(data.length),
+      uint16le(filenameBytes.length),
+      uint16le(0),
+      filenameBytes,
+    ]);
+    localParts.push(localHeader, data);
+
+    const centralHeader = concatUint8Arrays([
+      uint32le(0x02014b50),
+      uint16le(20),
+      uint16le(20),
+      uint16le(0x0800),
+      uint16le(0),
+      uint16le(dosTime),
+      uint16le(dosDate),
+      uint32le(crc),
+      uint32le(data.length),
+      uint32le(data.length),
+      uint16le(filenameBytes.length),
+      uint16le(0),
+      uint16le(0),
+      uint16le(0),
+      uint16le(0),
+      uint32le(0),
+      uint32le(offset),
+      filenameBytes,
+    ]);
+    centralParts.push(centralHeader);
+    offset += localHeader.length + data.length;
+  });
+
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+  const centralOffset = offset;
+  const endRecord = concatUint8Arrays([
+    uint32le(0x06054b50),
+    uint16le(0),
+    uint16le(0),
+    uint16le(entries.length),
+    uint16le(entries.length),
+    uint32le(centralSize),
+    uint32le(centralOffset),
+    uint16le(0),
+  ]);
+
+  return new Blob([...localParts, ...centralParts, endRecord], { type: "application/zip" });
+}
+
+function getZipDateTime() {
+  const now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+  const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  return { dosTime, dosDate };
+}
+
+function uint16le(value) {
+  return new Uint8Array([value & 0xff, (value >> 8) & 0xff]);
+}
+
+function uint32le(value) {
+  return new Uint8Array([value & 0xff, (value >> 8) & 0xff, (value >> 16) & 0xff, (value >> 24) & 0xff]);
+}
+
+function concatUint8Arrays(parts) {
+  const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+  const output = new Uint8Array(totalLength);
+  let offset = 0;
+  parts.forEach((part) => {
+    output.set(part, offset);
+    offset += part.length;
+  });
+  return output;
+}
+
+function crc32(data) {
+  let crc = 0xffffffff;
+  for (let i = 0; i < data.length; i += 1) {
+    crc = (crc >>> 8) ^ crc32Table[(crc ^ data[i]) & 0xff];
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const crc32Table = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i += 1) {
+    let value = i;
+    for (let j = 0; j < 8; j += 1) {
+      value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+    }
+    table[i] = value >>> 0;
+  }
+  return table;
+})();
 
 function buildRowKey(row, fallbackIndex = 0) {
   return [
