@@ -8,7 +8,7 @@ import pandas as pd
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 NYT_OUTPUT_DIR = SCRIPT_DIR / "output" / "nytimes"
-IMAGE_DIR = NYT_OUTPUT_DIR / "images"
+IMAGE_DIR = NYT_OUTPUT_DIR / "nytimes_images"
 
 THUMBNAIL_PATTERN = re.compile(
     r"(?:thumbstandard|thumblarge|thumbnail|smallthumb|blogsmallthumb|thumb)",

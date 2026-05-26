@@ -20,22 +20,10 @@ RETRY_STATUS_CODES = {403, 429, 500, 502, 503, 504}
 
 IPCC_WINDOWS = [
     {
-        "slug": "ar5",
-        "label": "AR5 release and uptake",
+        "slug": "since_2013",
+        "label": "Since 2013",
         "start": "2013-01-01",
-        "end": "2015-12-31",
-    },
-    {
-        "slug": "special_reports",
-        "label": "AR6-cycle special reports",
-        "start": "2018-01-01",
-        "end": "2020-12-31",
-    },
-    {
-        "slug": "ar6",
-        "label": "AR6 release and uptake",
-        "start": "2021-01-01",
-        "end": "2024-12-31",
+        "end": "2026-01-01",
     },
 ]
 
@@ -300,11 +288,16 @@ def download_image(session, image_url, destination):
         return False
 
 
+def image_folder_name(newspaper_slug):
+    return f"{newspaper_slug}_images"
+
+
 def ensure_output_dirs(output_dir):
-    image_dir = output_dir / "images"
+    newspaper_slug = output_dir.name
+    image_dir = output_dir / image_folder_name(newspaper_slug)
     output_dir.mkdir(parents=True, exist_ok=True)
     image_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir / "articles.csv", output_dir / "images.csv", image_dir
+    return output_dir / "articles.csv", output_dir / f"{newspaper_slug}_images.csv", image_dir
 
 
 def make_empty_dataframe(columns):
@@ -596,7 +589,7 @@ def candidate_to_image_row(
 
 
 def make_codebook_relative_image_path(newspaper_slug, image_name):
-    return str(Path("..") / "Scripts" / "output" / newspaper_slug / "images" / image_name).replace("\\", "/")
+    return str(Path("..") / "Scripts" / "output" / newspaper_slug / image_folder_name(newspaper_slug) / image_name).replace("\\", "/")
 
 
 def download_candidate_images(
