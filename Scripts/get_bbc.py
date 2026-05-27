@@ -1,6 +1,5 @@
 from pathlib import Path
 from urllib.parse import quote
-import re
 import time
 
 from bs4 import BeautifulSoup
@@ -8,17 +7,20 @@ from bs4 import BeautifulSoup
 from climate_visualization_utils import (
     ARTICLE_FETCH_DELAY,
     API_PAGE_DELAY_SECONDS,
-    MAX_ARTICLES_PER_WINDOW_TERM,
     SEARCH_TERMS,
     download_article_charts,
     extract_published_date_from_html,
     ensure_output_dirs,
     get_active_windows,
+    get_term_cap,
     make_session,
     match_window_for_date,
+    parse_human_readable_date,
     sanitize_filename,
     save_outputs,
     safe_get_text,
+    sort_article_df,
+    sort_image_df,
     truncate_text,
 )
 
@@ -26,7 +28,7 @@ from climate_visualization_utils import (
 BASE_SEARCH_URL = "https://www.bbc.co.uk/search"
 NEWSPAPER = "BBC News"
 NEWSPAPER_SLUG = "bbc"
-MAX_PAGES = 50
+MAX_PAGES = 100
 
 ARTICLE_ROOT_SELECTORS = [
     "main",
@@ -38,9 +40,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = SCRIPT_DIR / "output" / NEWSPAPER_SLUG
 ARTICLES_CSV, IMAGES_CSV, IMAGE_DIR = ensure_output_dirs(OUTPUT_DIR)
 ARTICLES_BEFORE_CSV = OUTPUT_DIR / "articles_before_filter.csv"
-ARTICLES_AFTER_CSV = OUTPUT_DIR / "articles_after_filter.csv"
 IMAGES_BEFORE_CSV = OUTPUT_DIR / "images_before_filter.csv"
-IMAGES_AFTER_CSV = OUTPUT_DIR / "images_after_filter.csv"
 
 
 def build_search_url(term, page):
@@ -80,12 +80,11 @@ def extract_search_results(html):
             continue
 
         parent_text = " ".join(anchor.parent.get_text(" ", strip=True).split()) if anchor.parent else ""
-        pub_date_match = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", parent_text)
         results.append(
             {
                 "title": title,
                 "article_url": article_url,
-                "published_date": pub_date_match.group(1) if pub_date_match else "",
+                "published_date": parse_human_readable_date(parent_text),
             }
         )
         seen_urls.add(article_url)
@@ -105,14 +104,15 @@ def main():
     active_window_slugs = {window["slug"] for window in get_active_windows()}
 
     for term in SEARCH_TERMS:
-        print(f"\n[INFO] Searching BBC for: {term}")
+        term_cap = get_term_cap(term)
+        print(f"\n[INFO] Searching BBC for: {term} (cap: {term_cap}/window)")
         per_window_counts = {slug: 0 for slug in active_window_slugs}
 
         for page in range(1, MAX_PAGES + 1):
-            if all(count >= MAX_ARTICLES_PER_WINDOW_TERM for count in per_window_counts.values()):
+            if all(count >= term_cap for count in per_window_counts.values()):
                 print(
                     f"[INFO] Reached article cap for all active BBC windows for {term}: "
-                    f"{MAX_ARTICLES_PER_WINDOW_TERM} per window-term."
+                    f"{term_cap} per window-term."
                 )
                 break
             search_url = build_search_url(term, page)
@@ -126,7 +126,7 @@ def main():
                 break
 
             counts_text = ", ".join(
-                f"{slug}:{count}/{MAX_ARTICLES_PER_WINDOW_TERM}"
+                f"{slug}:{count}/{term_cap}"
                 for slug, count in sorted(per_window_counts.items())
             )
             print(f"[INFO] Term {term} | page {page}/{MAX_PAGES} | results: {len(search_results)} | {counts_text}")
@@ -145,7 +145,7 @@ def main():
                 matched_window = match_window_for_date(pub_date)
                 if not matched_window or matched_window["slug"] not in active_window_slugs:
                     continue
-                if per_window_counts[matched_window["slug"]] >= MAX_ARTICLES_PER_WINDOW_TERM:
+                if per_window_counts[matched_window["slug"]] >= term_cap:
                     continue
                 seen_article_urls.add(article_url)
                 article_title = truncate_text(item["title"], 500)
@@ -201,9 +201,8 @@ def main():
     before_articles_df, before_images_df = save_outputs(
         article_rows_before, image_rows_before, ARTICLES_BEFORE_CSV, IMAGES_BEFORE_CSV
     )
-    after_articles_df, after_images_df = save_outputs(
-        article_rows_after, image_rows_after, ARTICLES_AFTER_CSV, IMAGES_AFTER_CSV
-    )
+    after_articles_df = sort_article_df(article_rows_after)
+    after_images_df = sort_image_df(image_rows_after)
     after_articles_df.to_csv(ARTICLES_CSV, index=False, encoding="utf-8-sig")
     after_images_df.to_csv(IMAGES_CSV, index=False, encoding="utf-8-sig")
 
@@ -211,8 +210,8 @@ def main():
     print(f"[COUNT] After filter  | articles: {len(after_articles_df)} | images: {len(after_images_df)}")
     print(f"[DONE] Saved BBC before-filter articles to {ARTICLES_BEFORE_CSV}")
     print(f"[DONE] Saved BBC before-filter images to {IMAGES_BEFORE_CSV}")
-    print(f"[DONE] Saved BBC after-filter articles to {ARTICLES_AFTER_CSV}")
-    print(f"[DONE] Saved BBC after-filter images to {IMAGES_AFTER_CSV}")
+    print(f"[DONE] Saved BBC final articles to {ARTICLES_CSV}")
+    print(f"[DONE] Saved BBC final images to {IMAGES_CSV}")
 
 
 if __name__ == "__main__":

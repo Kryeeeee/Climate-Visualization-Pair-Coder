@@ -1,17 +1,19 @@
 from pathlib import Path
+import hashlib
 import time
 
 from climate_visualization_utils import (
     API_PAGE_DELAY_SECONDS,
-    MAX_ARTICLES_PER_WINDOW_TERM,
     SEARCH_TERMS,
     download_article_charts,
     ensure_output_dirs,
     get_active_windows,
+    get_term_cap,
     make_session,
     safe_get_json,
-    sanitize_filename,
     save_outputs,
+    sort_article_df,
+    sort_image_df,
     truncate_text,
 )
 
@@ -22,7 +24,7 @@ NEWSPAPER = "The Guardian"
 NEWSPAPER_SLUG = "guardian"
 
 PAGE_SIZE = 50
-MAX_PAGES = 50
+MAX_PAGES = 100
 
 ARTICLE_ROOT_SELECTORS = [
     "div[itemprop='articleBody']",
@@ -31,13 +33,18 @@ ARTICLE_ROOT_SELECTORS = [
 ]
 
 
+def make_guardian_article_id(article):
+    article_url = (article.get("webUrl") or "").strip()
+    article_id = article.get("id", "") or article_url
+    short_hash = hashlib.sha1(article_id.encode("utf-8")).hexdigest()[:10]
+    return f"guardian_{short_hash}"
+
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = SCRIPT_DIR / "output" / NEWSPAPER_SLUG
 ARTICLES_CSV, IMAGES_CSV, IMAGE_DIR = ensure_output_dirs(OUTPUT_DIR)
 ARTICLES_BEFORE_CSV = OUTPUT_DIR / "articles_before_filter.csv"
-ARTICLES_AFTER_CSV = OUTPUT_DIR / "articles_after_filter.csv"
 IMAGES_BEFORE_CSV = OUTPUT_DIR / "images_before_filter.csv"
-IMAGES_AFTER_CSV = OUTPUT_DIR / "images_after_filter.csv"
 
 
 def main():
@@ -51,7 +58,8 @@ def main():
 
     for window in get_active_windows():
         for term in SEARCH_TERMS:
-            print(f"\n[INFO] Searching Guardian for {window['slug']}: {term}")
+            term_cap = get_term_cap(term)
+            print(f"\n[INFO] Searching Guardian for {window['slug']}: {term} (cap: {term_cap})")
             current_page = 1
             total_pages = 1
             collected_count = 0
@@ -59,7 +67,7 @@ def main():
             while (
                 current_page <= total_pages
                 and current_page <= MAX_PAGES
-                and collected_count < MAX_ARTICLES_PER_WINDOW_TERM
+                and collected_count < term_cap
             ):
                 params = {
                     "q": term,
@@ -92,11 +100,11 @@ def main():
                 print(
                     f"[INFO] Window {window['slug']} | term {term} | "
                     f"page {current_page}/{total_pages} | results: {len(results)} | "
-                    f"articles: {collected_count}/{MAX_ARTICLES_PER_WINDOW_TERM}"
+                    f"articles: {collected_count}/{term_cap}"
                 )
 
                 for article in results:
-                    if collected_count >= MAX_ARTICLES_PER_WINDOW_TERM:
+                    if collected_count >= term_cap:
                         break
                     article_url = (article.get("webUrl") or "").strip()
                     if not article_url or article_url in seen_article_urls:
@@ -104,7 +112,7 @@ def main():
 
                     seen_article_urls.add(article_url)
                     fields = article.get("fields", {})
-                    article_id = sanitize_filename(article.get("id", ""))
+                    article_id = make_guardian_article_id(article)
                     pub_date = (article.get("webPublicationDate") or "")[:10]
                     article_title = truncate_text(fields.get("headline"), 500)
 
@@ -159,9 +167,8 @@ def main():
     before_articles_df, before_images_df = save_outputs(
         article_rows_before, image_rows_before, ARTICLES_BEFORE_CSV, IMAGES_BEFORE_CSV
     )
-    after_articles_df, after_images_df = save_outputs(
-        article_rows_after, image_rows_after, ARTICLES_AFTER_CSV, IMAGES_AFTER_CSV
-    )
+    after_articles_df = sort_article_df(article_rows_after)
+    after_images_df = sort_image_df(image_rows_after)
     after_articles_df.to_csv(ARTICLES_CSV, index=False, encoding="utf-8-sig")
     after_images_df.to_csv(IMAGES_CSV, index=False, encoding="utf-8-sig")
 
@@ -169,8 +176,8 @@ def main():
     print(f"[COUNT] After filter  | articles: {len(after_articles_df)} | images: {len(after_images_df)}")
     print(f"[DONE] Saved Guardian before-filter articles to {ARTICLES_BEFORE_CSV}")
     print(f"[DONE] Saved Guardian before-filter images to {IMAGES_BEFORE_CSV}")
-    print(f"[DONE] Saved Guardian after-filter articles to {ARTICLES_AFTER_CSV}")
-    print(f"[DONE] Saved Guardian after-filter images to {IMAGES_AFTER_CSV}")
+    print(f"[DONE] Saved Guardian final articles to {ARTICLES_CSV}")
+    print(f"[DONE] Saved Guardian final images to {IMAGES_CSV}")
 
 
 if __name__ == "__main__":

@@ -15,31 +15,45 @@ SLEEP_SECONDS = 0.25
 ARTICLE_FETCH_DELAY = 1.0
 API_PAGE_DELAY_SECONDS = 1.0
 NYT_PAGE_DELAY_SECONDS = 3.0
-MAX_ARTICLES_PER_WINDOW_TERM = 250
+MAX_ARTICLES_PER_WINDOW_TERM = 50
 RETRY_STATUS_CODES = {403, 429, 500, 502, 503, 504}
 
-IPCC_WINDOWS = [
+WINDOWS = [
     {
-        "slug": "since_2013",
-        "label": "Since 2013",
-        "start": "2013-01-01",
-        "end": "2026-01-01",
-    },
+        "slug": str(year),
+        "label": str(year),
+        "start": f"{year}-01-01",
+        "end": f"{year + 1}-01-01",
+    }
+    for year in range(2013, 2026)
 ]
 
-ACTIVE_WINDOW_SLUGS = [window["slug"] for window in IPCC_WINDOWS]
+ACTIVE_WINDOW_SLUGS = [window["slug"] for window in WINDOWS]
 
 SEARCH_TERMS = [
     '"climate change"',
-    '"global warming"',
+    '"global temperature"',
+    '"sea level rise"',
+    '"carbon budget"',
+    '"net zero"',
+    '"1.5C"',
     "IPCC",
-    '"greenhouse gas"',
-    "emissions",
-    "temperature",
-    '"sea level"',
-    '"carbon dioxide"',
-    "ERA5",
 ]
+
+TERM_CAPS = {
+    '"climate change"': 200,
+    '"net zero"': 100,
+    '"sea level rise"': 100,
+    '"1.5C"': 100,
+    '"global temperature"': 100,
+    '"carbon budget"': 100,
+    "IPCC": 300,
+}
+
+
+def get_term_cap(term):
+    return TERM_CAPS.get(term, MAX_ARTICLES_PER_WINDOW_TERM)
+
 
 ARTICLE_COLUMNS = [
     "article_id",
@@ -165,6 +179,49 @@ SRCSET_ATTRIBUTES = [
     "data-srcset",
 ]
 
+EMBED_PROVIDERS = [
+    {
+        "name": "datawrapper",
+        "pattern": re.compile(r"https?://datawrapper\.dwcdn\.net/([A-Za-z0-9]+)/(\d+)/?"),
+        "embed_url": lambda m: f"https://datawrapper.dwcdn.net/{m.group(1)}/{m.group(2)}/",
+        "context": "datawrapper chart",
+    },
+    {
+        "name": "flourish",
+        "pattern": re.compile(r"https?://flo\.uri\.sh/visualisation/(\d+)"),
+        "embed_url": lambda m: f"https://flo.uri.sh/visualisation/{m.group(1)}/embed",
+        "context": "flourish visualization",
+    },
+]
+
+_MONTH_NAMES = {
+    "january": "01", "february": "02", "march": "03", "april": "04",
+    "may": "05", "june": "06", "july": "07", "august": "08",
+    "september": "09", "october": "10", "november": "11", "december": "12",
+    "jan": "01", "feb": "02", "mar": "03", "apr": "04",
+    "jun": "06", "jul": "07", "aug": "08", "sep": "09",
+    "oct": "10", "nov": "11", "dec": "12",
+}
+_MONTH_RE = (
+    r"january|february|march|april|may|june|july|august|september|"
+    r"october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec"
+)
+
+
+def parse_human_readable_date(text):
+    if not text:
+        return ""
+    m = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", text)
+    if m:
+        return m.group(1)
+    m = re.search(rf"\b(\d{{1,2}})\s+({_MONTH_RE})\s+(20\d{{2}})\b", text, flags=re.IGNORECASE)
+    if m:
+        return f"{m.group(3)}-{_MONTH_NAMES[m.group(2).lower()]}-{m.group(1).zfill(2)}"
+    m = re.search(rf"\b({_MONTH_RE})\s+(\d{{1,2}}),?\s+(20\d{{2}})\b", text, flags=re.IGNORECASE)
+    if m:
+        return f"{m.group(3)}-{_MONTH_NAMES[m.group(1).lower()]}-{m.group(2).zfill(2)}"
+    return ""
+
 
 def truncate_text(value, max_chars=MAX_TEXT_CHARS):
     if value is None:
@@ -241,6 +298,16 @@ def request_with_retries(session, url, params=None, context="request", stream=Fa
                 continue
             response.raise_for_status()
             return response
+        except requests.HTTPError as exc:
+            if exc.response is not None and 400 <= exc.response.status_code < 500:
+                raise
+            last_exc = exc
+            if attempt < max_attempts:
+                wait_seconds = get_retry_wait_seconds(attempt=attempt)
+                print(f"[WARN] {context}: {exc}. Retrying in {wait_seconds}s...")
+                time.sleep(wait_seconds)
+                continue
+            break
         except requests.RequestException as exc:
             last_exc = exc
             if attempt < max_attempts:
@@ -305,8 +372,8 @@ def make_empty_dataframe(columns):
 
 
 def get_active_windows():
-    active = [window for window in IPCC_WINDOWS if window["slug"] in ACTIVE_WINDOW_SLUGS]
-    return active or IPCC_WINDOWS
+    active = [window for window in WINDOWS if window["slug"] in ACTIVE_WINDOW_SLUGS]
+    return active or WINDOWS
 
 
 def normalize_date(value):
@@ -320,7 +387,7 @@ def date_in_window(date_value, window):
     normalized = normalize_date(date_value)
     if not normalized:
         return False
-    return window["start"] <= normalized <= window["end"]
+    return window["start"] <= normalized < window["end"]
 
 
 def match_window_for_date(date_value):
@@ -481,14 +548,63 @@ def score_chart_candidate(candidate):
 
 def is_chart_candidate(candidate):
     score, positive_hits, negative_hits = score_chart_candidate(candidate)
-    if negative_hits:
-        return False, score, positive_hits, negative_hits
-    if score >= 1:
-        return True, score, positive_hits, negative_hits
-    return False, score, positive_hits, negative_hits
+    return score >= 1, score, positive_hits, negative_hits
 
 
-def extract_image_candidates(html, article_url, selectors):
+def _resolve_embed_image_url(session, embed_url):
+    """Fetch an embed page and extract its og:image or first <img> as the static image URL."""
+    try:
+        response = request_with_retries(session, embed_url, context=f"embed {embed_url}")
+        soup = BeautifulSoup(response.text, "html.parser")
+        for attr in ("og:image", "twitter:image"):
+            tag = soup.find("meta", property=attr) or soup.find("meta", attrs={"name": attr})
+            if tag and tag.get("content"):
+                return tag["content"].strip()
+        img = soup.find("img")
+        if img:
+            src = img.get("src") or img.get("data-src") or ""
+            if src:
+                return urljoin(embed_url, src)
+    except requests.RequestException:
+        pass
+    return ""
+
+
+def extract_embedded_chart_candidates(session, html, article_url, known_urls):
+    """Detect Datawrapper/Flourish iframes, fetch their pages, and return real image candidates."""
+    soup = BeautifulSoup(html, "html.parser")
+    candidates = []
+    for tag in soup.find_all(["iframe", "div", "figure"]):
+        src = next(
+            (tag.get(attr) for attr in ("src", "data-src", "data-url") if tag.get(attr)),
+            "",
+        )
+        if not src:
+            continue
+        for provider in EMBED_PROVIDERS:
+            m = provider["pattern"].search(src)
+            if not m:
+                continue
+            embed_url = provider["embed_url"](m)
+            image_url = _resolve_embed_image_url(session, embed_url)
+            if not image_url or image_url in known_urls:
+                break
+            known_urls.add(image_url)
+            parent = tag.parent
+            figcaption = parent.find("figcaption") if parent else None
+            caption = collect_text(figcaption) if figcaption else ""
+            candidates.append({
+                "image_url": image_url,
+                "caption": caption,
+                "credit": "",
+                "alt_text": provider["context"],
+                "context_text": provider["context"],
+            })
+            break
+    return candidates
+
+
+def extract_image_candidates(html, article_url, selectors, session=None):
     soup = BeautifulSoup(html, "html.parser")
     roots = article_roots(soup, selectors)
     candidates = []
@@ -507,6 +623,10 @@ def extract_image_candidates(html, article_url, selectors):
                 known_urls.add(image_url)
 
         for candidate in extra_chart_like_images(root, article_url, known_urls):
+            candidates.append(candidate)
+
+    if session is not None:
+        for candidate in extract_embedded_chart_candidates(session, html, article_url, known_urls):
             candidates.append(candidate)
 
     return candidates
@@ -794,7 +914,7 @@ def download_article_charts(
 
     before_rows = []
     after_rows = []
-    all_candidates = extract_image_candidates(html, article_url, selectors)
+    all_candidates = extract_image_candidates(html, article_url, selectors, session=session)
     return download_candidate_images(
         session=session,
         candidates=all_candidates,

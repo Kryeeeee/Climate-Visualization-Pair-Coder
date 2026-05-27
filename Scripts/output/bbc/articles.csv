@@ -1,33 +1,59 @@
 ﻿article_id,newspaper,ipcc_window,search_term,title,article_url,section,published_date,image_count
-c9w15nggj58o,BBC News,ar5,"""climate change""",What is climate change? A really simple guide,https://www.bbc.co.uk/news/articles/c9w15nggj58o,BBC search,2013-09-23,4
-science-environment-24494398,BBC News,ar5,"""global warming""","Global warming will increase intensity of El Nino, scientists say",https://www.bbc.co.uk/news/science-environment-24494398,BBC search,2013-10-14,1
-science-environment-28870988,BBC News,ar5,"""global warming""",Global warming slowdown 'could last another decade',https://www.bbc.co.uk/news/science-environment-28870988,BBC search,2014-08-21,1
-science-environment-30399073,BBC News,ar5,"""carbon dioxide""",Carbon dioxide satellite mission returns first global maps,https://www.bbc.co.uk/news/science-environment-30399073,BBC search,2014-12-18,1
-world-us-canada-44067797,BBC News,special_reports,"""greenhouse gas""",Trump White House axes Nasa research into greenhouse gas cuts,https://www.bbc.co.uk/news/world-us-canada-44067797,BBC search,2018-05-10,1
-world-43789527,BBC News,special_reports,"""carbon dioxide""",Turning carbon dioxide into rock - forever,https://www.bbc.co.uk/news/world-43789527,BBC search,2018-05-17,1
-science-environment-45653099,BBC News,special_reports,IPCC,IPCC: Climate scientists consider 'life changing' report,https://www.bbc.co.uk/news/science-environment-45653099,BBC search,2018-10-01,1
-science-environment-45784892,BBC News,special_reports,IPCC,Five things we have learned from the IPCC report,https://www.bbc.co.uk/news/science-environment-45784892,BBC search,2018-10-08,1
-uk-northern-ireland-48338943,BBC News,special_reports,"""carbon dioxide""",Warrenpoint Port set for Â£9.5m carbon dioxide terminal,https://www.bbc.co.uk/news/uk-northern-ireland-48338943,BBC search,2019-05-20,1
-uk-scotland-highlands-islands-49884457,BBC News,special_reports,"""sea level""",'Shocking level' of litter on sea corals off Scotland,https://www.bbc.co.uk/news/uk-scotland-highlands-islands-49884457,BBC search,2019-10-03,2
-science-environment-50236882,BBC News,special_reports,"""sea level""",Climate change: Sea level rise to affect 'three times more people',https://www.bbc.co.uk/news/science-environment-50236882,BBC search,2019-10-30,2
-science-environment-50438611,BBC News,special_reports,"""sea level""",Sentinel for sea-level rise enters testing,https://www.bbc.co.uk/news/science-environment-50438611,BBC search,2019-11-15,2
-science-environment-51283716,BBC News,special_reports,"""sea level""",Coastal floods warning in UK as sea levels rise,https://www.bbc.co.uk/news/science-environment-51283716,BBC search,2020-02-14,1
-uk-scotland-53063990,BBC News,special_reports,"""greenhouse gas""",Power sector problems see greenhouse gas target missed,https://www.bbc.co.uk/news/uk-scotland-53063990,BBC search,2020-06-16,2
-science-environment-56935097,BBC News,ar6,"""sea level""",The Cornish hut that gave rise to sea level benchmark,https://www.bbc.co.uk/news/science-environment-56935097,BBC search,2021-04-30,1
-cy4dgp1p3p1o,BBC News,ar6,"""climate change""","How climate change worsens heatwaves, droughts, fires and floods",https://www.bbc.co.uk/news/articles/cy4dgp1p3p1o,BBC search,2021-08-09,4
-science-environment-58130705,BBC News,ar6,IPCC,Climate change: IPCC report is 'code red for humanity',https://www.bbc.co.uk/news/science-environment-58130705,BBC search,2021-08-09,1
-science-environment-58138714,BBC News,ar6,IPCC,Climate change: Five things we have learned from the IPCC report,https://www.bbc.co.uk/news/science-environment-58138714,BBC search,2021-08-09,5
-uk-wales-58146128,BBC News,ar6,IPCC,Climate change: IPCC report heralds Wales' 'last-chance saloon',https://www.bbc.co.uk/news/uk-wales-58146128,BBC search,2021-08-09,2
-world-58064485,BBC News,ar6,IPCC,Climate change: At-risk nations fear extinction after IPCC report,https://www.bbc.co.uk/news/world-58064485,BBC search,2021-08-09,2
-science-environment-58494641,BBC News,ar6,ERA5,Climate change: World now sees twice as many days over 50C,https://www.bbc.co.uk/news/science-environment-58494641,BBC search,2021-09-13,2
-business-58641394,BBC News,ar6,"""carbon dioxide""",Gas price crisis: Food firms face huge price rise for carbon dioxide,https://www.bbc.co.uk/news/business-58641394,BBC search,2021-09-22,1
-business-58867911,BBC News,ar6,"""carbon dioxide""",Carbon dioxide supply deal agreed between government and firms,https://www.bbc.co.uk/news/business-58867911,BBC search,2021-10-11,1
-science-environment-58899006,BBC News,ar6,"""greenhouse gas""",Net zero announcement: UK sets out plans to cut greenhouse gas emissions,https://www.bbc.co.uk/news/science-environment-58899006,BBC search,2021-10-19,1
-world-59156491,BBC News,ar6,"""global warming""",COP26 promises could limit global warming to 1.8C,https://www.bbc.co.uk/news/live/world-59156491,BBC search,2021-11-04,2
-science-environment-61795783,BBC News,ar6,"""sea level""","Climate change: Rising sea levels threaten 200,000 England properties",https://www.bbc.co.uk/news/science-environment-61795783,BBC search,2022-06-15,1
-science-environment-62322574,BBC News,ar6,"""sea level""",Climate change: UK sea level rise speeding up - Met Office,https://www.bbc.co.uk/news/science-environment-62322574,BBC search,2022-07-28,1
-uk-england-essex-64255567,BBC News,ar6,"""sea level""",Flood of 1953: Canvey Island defiant in face of rising sea levels,https://www.bbc.co.uk/news/uk-england-essex-64255567,BBC search,2023-01-31,2
-science-environment-65602293,BBC News,ar6,"""global warming""",Global warming set to break key 1.5C limit for first time,https://www.bbc.co.uk/news/science-environment-65602293,BBC search,2023-05-17,1
-science-environment-67171231,BBC News,ar6,"""sea level""",Sea-level rise: West Antarctic ice shelf melt 'unavoidable',https://www.bbc.co.uk/news/science-environment-67171231,BBC search,2023-10-23,2
-cp8ned4xnewo,BBC News,ar6,"""carbon dioxide""",Fawley: Concerns raised over planned carbon dioxide pipe,https://www.bbc.co.uk/news/articles/cp8ned4xnewo,BBC search,2024-08-09,1
-c8rxlygvnx6o,BBC News,ar6,emissions,"Future Earth Newsletter Climate Q&A: Emissions, volcanoes and EVs",https://www.bbc.co.uk/news/articles/c8rxlygvnx6o,BBC search,2024-08-16,2
+c9w15nggj58o,BBC News,2013,"""climate change""",What is climate change? A really simple guide,https://www.bbc.co.uk/news/articles/c9w15nggj58o,BBC search,2013-09-23,4
+science-environment-35354579,BBC News,2016,"""global temperature""",Climate change: 2015 'shattered' global temperature record by wide margin,https://www.bbc.co.uk/news/science-environment-35354579,BBC search,2016-01-20,1
+world-europe-36255749,BBC News,2016,"""sea level rise""",Five Pacific islands disappear as sea levels rise,https://www.bbc.co.uk/news/world-europe-36255749,BBC search,2016-05-10,2
+science-environment-36303046,BBC News,2016,"""global temperature""",April breaks global temperature record,https://www.bbc.co.uk/news/science-environment-36303046,BBC search,2016-05-16,1
+uk-england-merseyside-39419843,BBC News,2017,"""sea level rise""","Everton's new stadium plans could be sunk by rising sea levels, warns academic",https://www.bbc.co.uk/news/uk-england-merseyside-39419843,BBC search,2017-03-28,1
+cz913gxlw3jo,BBC News,2017,"""climate change""","How climate change affects hurricanes, typhoons and cyclones",https://www.bbc.co.uk/news/articles/cz913gxlw3jo,BBC search,2017-12-30,4
+science-environment-45653099,BBC News,2018,"""1.5C""",IPCC: Climate scientists consider 'life changing' report,https://www.bbc.co.uk/news/science-environment-45653099,BBC search,2018-10-01,1
+science-environment-45678338,BBC News,2018,"""1.5C""",What does 1.5C mean in a warming world?,https://www.bbc.co.uk/news/science-environment-45678338,BBC search,2018-10-02,2
+science-environment-45784892,BBC News,2018,IPCC,Five things we have learned from the IPCC report,https://www.bbc.co.uk/news/science-environment-45784892,BBC search,2018-10-08,1
+science-environment-48840528,BBC News,2019,"""1.5C""",Climate change: Antarctic Peninsula 'can still avoid irreversible change',https://www.bbc.co.uk/news/science-environment-48840528,BBC search,2019-07-02,1
+science-environment-50236882,BBC News,2019,"""sea level rise""",Climate change: Sea level rise to affect 'three times more people',https://www.bbc.co.uk/news/science-environment-50236882,BBC search,2019-10-30,2
+science-environment-50438611,BBC News,2019,"""sea level rise""",Sentinel for sea-level rise enters testing,https://www.bbc.co.uk/news/science-environment-50438611,BBC search,2019-11-15,2
+science-environment-51283716,BBC News,2020,"""sea level rise""",Coastal floods warning in UK as sea levels rise,https://www.bbc.co.uk/news/science-environment-51283716,BBC search,2020-02-14,1
+science-environment-56935097,BBC News,2021,"""sea level rise""",The Cornish hut that gave rise to sea level benchmark,https://www.bbc.co.uk/news/science-environment-56935097,BBC search,2021-04-30,1
+cy4dgp1p3p1o,BBC News,2021,"""climate change""","How climate change worsens heatwaves, droughts, fires and floods",https://www.bbc.co.uk/news/articles/cy4dgp1p3p1o,BBC search,2021-08-09,3
+science-environment-58130705,BBC News,2021,IPCC,Climate change: IPCC report is 'code red for humanity',https://www.bbc.co.uk/news/science-environment-58130705,BBC search,2021-08-09,1
+science-environment-58138714,BBC News,2021,IPCC,Climate change: Five things we have learned from the IPCC report,https://www.bbc.co.uk/news/science-environment-58138714,BBC search,2021-08-09,5
+uk-wales-58146128,BBC News,2021,IPCC,Climate change: IPCC report heralds Wales' 'last-chance saloon',https://www.bbc.co.uk/news/uk-wales-58146128,BBC search,2021-08-09,1
+world-58064485,BBC News,2021,IPCC,Climate change: At-risk nations fear extinction after IPCC report,https://www.bbc.co.uk/news/world-58064485,BBC search,2021-08-09,2
+uk-59110765,BBC News,2021,"""1.5C""",COP26: 'Window closing' to meet 1.5C warming target - Alok Sharma,https://www.bbc.co.uk/news/uk-59110765,BBC search,2021-10-31,1
+science-environment-61795783,BBC News,2022,"""sea level rise""","Climate change: Rising sea levels threaten 200,000 England properties",https://www.bbc.co.uk/news/science-environment-61795783,BBC search,2022-06-15,1
+science-environment-62322574,BBC News,2022,"""sea level rise""",Climate change: UK sea level rise speeding up - Met Office,https://www.bbc.co.uk/news/science-environment-62322574,BBC search,2022-07-28,1
+world-asia-india-58922398,BBC News,2022,"""1.5C""",Climate change: What emission cuts has India promised?,https://www.bbc.co.uk/news/world-asia-india-58922398,BBC search,2022-11-07,1
+science-environment-63591796,BBC News,2022,"""1.5C""",COP27: Key climate goal of 1.5C rise faces new challenge,https://www.bbc.co.uk/news/science-environment-63591796,BBC search,2022-11-11,1
+science-environment-63617400,BBC News,2022,"""global temperature""",COP27: Fears of compromise on key 1.5C global temperature issue,https://www.bbc.co.uk/news/science-environment-63617400,BBC search,2022-11-14,1
+uk-england-essex-64255567,BBC News,2023,"""sea level rise""",Flood of 1953: Canvey Island defiant in face of rising sea levels,https://www.bbc.co.uk/news/uk-england-essex-64255567,BBC search,2023-01-31,2
+science-environment-65602293,BBC News,2023,"""1.5C""",Global warming set to break key 1.5C limit for first time,https://www.bbc.co.uk/news/science-environment-65602293,BBC search,2023-05-17,1
+science-environment-66256101,BBC News,2023,"""1.5C""",World will miss 1.5C warming limit - top UK expert,https://www.bbc.co.uk/news/science-environment-66256101,BBC search,2023-07-20,1
+science-environment-66857354,BBC News,2023,"""1.5C""",World breaches key 1.5C warming mark for record number of days,https://www.bbc.co.uk/news/science-environment-66857354,BBC search,2023-10-06,2
+science-environment-67171231,BBC News,2023,"""sea level rise""",Sea-level rise: West Antarctic ice shelf melt 'unavoidable',https://www.bbc.co.uk/news/science-environment-67171231,BBC search,2023-10-23,2
+science-environment-67544977,BBC News,2023,"""1.5C""",Five climate change solutions under the spotlight at COP28,https://www.bbc.co.uk/news/science-environment-67544977,BBC search,2023-12-06,4
+science-environment-68110310,BBC News,2024,"""1.5C""",World's first year-long breach of key 1.5C warming limit,https://www.bbc.co.uk/news/science-environment-68110310,BBC search,2024-02-08,3
+c1dpnxnvv2go,BBC News,2024,"""1.5C""",2024 'virtually certain' to be world's warmest year on record,https://www.bbc.co.uk/news/articles/c1dpnxnvv2go,BBC search,2024-11-07,3
+c245e726r79o,BBC News,2024,"""net zero""",Can flights hit net zero by 2025 and at what cost to passengers?,https://www.bbc.co.uk/news/articles/c245e726r79o,BBC search,2024-11-29,1
+cd7575x8yq5o,BBC News,2025,"""1.5C""",World's hottest year: 2024 first to pass 1.5C warming limit,https://www.bbc.co.uk/news/articles/cd7575x8yq5o,BBC search,2025-01-10,4
+c30dn5dn53jo,BBC News,2025,"""1.5C""",Planet-warming carbon dioxide levels rose more than ever in 2024,https://www.bbc.co.uk/news/articles/c30dn5dn53jo,BBC search,2025-01-17,2
+c4gprn6evzzo,BBC News,2025,"""net zero""",Net zero carbon roadmap for 2030 agreed by Peterborough council,https://www.bbc.co.uk/news/articles/c4gprn6evzzo,BBC search,2025-01-24,2
+cly3pnjyzp4o,BBC News,2025,"""net zero""","Net Zero by 2050 'impossible' for UK, says Kemi Badenoch",https://www.bbc.co.uk/news/articles/cly3pnjyzp4o,BBC search,2025-03-17,1
+cj93e40znl3o,BBC News,2025,"""1.5C""","Coastlines in danger even if climate target met, scientists warn",https://www.bbc.co.uk/news/articles/cj93e40znl3o,BBC search,2025-05-20,1
+cn9jr8p3zv4o,BBC News,2025,"""carbon budget""","Ministers back '20,000-job' Humber Viking carbon capture project",https://www.bbc.co.uk/news/articles/cn9jr8p3zv4o,BBC search,2025-06-13,1
+c628nnz3rp9o,BBC News,2025,"""carbon budget""","Tiny creature gorges, gets fat, and locks up planet-warming carbon",https://www.bbc.co.uk/news/articles/c628nnz3rp9o,BBC search,2025-07-04,1
+ce379k4v3pwo,BBC News,2025,"""climate change""",Top UN court says countries can sue each other over climate change,https://www.bbc.co.uk/news/articles/ce379k4v3pwo,BBC search,2025-07-23,1
+c8ryey51l1eo,BBC News,2025,"""carbon budget""",West Bromwich firm and Aston University tackle carbon cost of metal car parts,https://www.bbc.co.uk/news/articles/c8ryey51l1eo,BBC search,2025-08-08,1
+cq877llq099o,BBC News,2025,"""1.5C""",Worst coral bleaching on record for Western Australian reefs,https://www.bbc.co.uk/news/articles/cq877llq099o,BBC search,2025-08-12,1
+c5yl5v4elgno,BBC News,2025,"""1.5C""",Britain is getting hotter â but are air conditioners the answer?,https://www.bbc.co.uk/news/articles/c5yl5v4elgno,BBC search,2025-08-31,3
+cj4y159190go,BBC News,2025,"""1.5C""",China makes landmark pledge to cut its climate emissions,https://www.bbc.co.uk/news/articles/cj4y159190go,BBC search,2025-09-24,1
+czew95e2369o,BBC News,2025,"""climate change""",Minecraft-style game based on Bude to help teach climate change,https://www.bbc.co.uk/news/articles/czew95e2369o,BBC search,2025-10-03,2
+ce32ezzq6zlo,BBC News,2025,"""1.5C""",Before and after images show glaciers vanishing before our eyes,https://www.bbc.co.uk/news/articles/ce32ezzq6zlo,BBC search,2025-10-05,4
+cx24kllyye1o,BBC News,2025,"""1.5C""",Government told to prepare for 2C warming by 2050,https://www.bbc.co.uk/news/articles/cx24kllyye1o,BBC search,2025-10-15,1
+c04gqez4lkyo,BBC News,2025,"""climate change""",What was agreed on climate change at COP30 in Brazil?,https://www.bbc.co.uk/news/articles/c04gqez4lkyo,BBC search,2025-10-30,2
+cgmx2e3nnw0o,BBC News,2025,"""climate change""",Devastation on repeat: How climate change is worsening Pakistan's deadly floods,https://www.bbc.co.uk/news/articles/cgmx2e3nnw0o,BBC search,2025-11-02,3
+c75q0dr2w09o,BBC News,2025,"""carbon budget""",Hedgerows and mob grazing: Can farming fix its carbon black hole?,https://www.bbc.co.uk/news/articles/c75q0dr2w09o,BBC search,2025-11-03,2
+c30v97m59dyo,BBC News,2025,"""net zero""",Scottish government reveals plan to reach net zero targets by 2045,https://www.bbc.co.uk/news/articles/c30v97m59dyo,BBC search,2025-11-06,1
+cwy1wjj0rxdt,BBC News,2025,"""climate change""",Starmer warns 'consensus is gone' on fighting climate change as leaders gather at COP30,https://www.bbc.co.uk/news/live/cwy1wjj0rxdt,BBC search,2025-11-06,2
+cx274lj661lo,BBC News,2025,"""1.5C""",Great Barrier Reef faces 'grim future' but can recover if global warming stays below 2C,https://www.bbc.co.uk/news/articles/cx274lj661lo,BBC search,2025-11-06,1
+ckg1xjz419lo,BBC News,2025,"""1.5C""",University of Birmingham students head to COP30 in Brazil,https://www.bbc.co.uk/news/articles/ckg1xjz419lo,BBC search,2025-11-10,1
+c0l7yjgn050o,BBC News,2025,"""1.5C""",Protesters break into COP30 venue in Brazil,https://www.bbc.co.uk/news/articles/c0l7yjgn050o,BBC search,2025-11-11,1
+cgr10jj8xg2o,BBC News,2025,"""carbon budget""","Humber carbon-capture plan 'a game-changer', villagers told",https://www.bbc.co.uk/news/articles/cgr10jj8xg2o,BBC search,2025-11-25,1

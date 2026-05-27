@@ -14,6 +14,8 @@ from climate_visualization_utils import (
     nyt_multimedia_to_candidates,
     sanitize_filename,
     save_outputs,
+    sort_article_df,
+    sort_image_df,
     truncate_text,
 )
 
@@ -25,7 +27,7 @@ NEWSPAPER_SLUG = "nytimes"
 
 NYT_MAX_PAGES_PER_SLICE = 5
 NYT_SLICE_DAYS = 365
-NYT_MAX_ARTICLES_PER_WINDOW_TERM = 80
+NYT_MAX_ARTICLES_PER_WINDOW_TERM = 30
 NYT_REQUEST_INTERVAL_SECONDS = 15.0
 NYT_RATE_LIMIT_COOLDOWN_SECONDS = 90.0
 NYT_MAX_RATE_LIMIT_RETRIES = 3
@@ -37,9 +39,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = SCRIPT_DIR / "output" / NEWSPAPER_SLUG
 ARTICLES_CSV, IMAGES_CSV, IMAGE_DIR = ensure_output_dirs(OUTPUT_DIR)
 ARTICLES_BEFORE_CSV = OUTPUT_DIR / "articles_before_filter.csv"
-ARTICLES_AFTER_CSV = OUTPUT_DIR / "articles_after_filter.csv"
 IMAGES_BEFORE_CSV = OUTPUT_DIR / "images_before_filter.csv"
-IMAGES_AFTER_CSV = OUTPUT_DIR / "images_after_filter.csv"
 
 
 def iter_date_slices(start_date, end_date, slice_days):
@@ -228,7 +228,6 @@ def main():
 
                         raw_multimedia = doc.get("multimedia", [])
                         multimedia_candidates = nyt_multimedia_to_candidates(raw_multimedia)
-                        filtered_multimedia_candidates = filter_nyt_multimedia_chart_candidates(multimedia_candidates)
                         image_results = download_candidate_images(
                             session=session,
                             candidates=multimedia_candidates,
@@ -246,14 +245,14 @@ def main():
                         )
                         before_image_rows = image_results["before_rows"]
                         after_image_rows = image_results["after_rows"]
-                        print(
-                            f"[INFO] NYT API multimedia | raw: {count_raw_multimedia(raw_multimedia)} | "
-                            f"candidates: {len(before_image_rows)} | chart-like: {len(filtered_multimedia_candidates)} | "
-                            f"downloaded: {len(after_image_rows)} | "
-                            f"article: {article_id}"
-                        )
                         image_rows_before.extend(before_image_rows)
                         image_rows_after.extend(after_image_rows)
+
+                        print(
+                            f"[INFO] NYT multimedia | raw: {count_raw_multimedia(raw_multimedia)} | "
+                            f"candidates: {len(before_image_rows)} | downloaded: {len(after_image_rows)} | "
+                            f"article: {article_id}"
+                        )
 
                         article_rows_before.append(
                             {
@@ -276,9 +275,8 @@ def main():
     before_articles_df, before_images_df = save_outputs(
         article_rows_before, image_rows_before, ARTICLES_BEFORE_CSV, IMAGES_BEFORE_CSV
     )
-    after_articles_df, after_images_df = save_outputs(
-        article_rows_after, image_rows_after, ARTICLES_AFTER_CSV, IMAGES_AFTER_CSV
-    )
+    after_articles_df = sort_article_df(article_rows_after)
+    after_images_df = sort_image_df(image_rows_after)
     after_articles_df.to_csv(ARTICLES_CSV, index=False, encoding="utf-8-sig")
     after_images_df.to_csv(IMAGES_CSV, index=False, encoding="utf-8-sig")
 
@@ -286,8 +284,8 @@ def main():
     print(f"[COUNT] After filter  | articles: {len(after_articles_df)} | images: {len(after_images_df)}")
     print(f"[DONE] Saved NYT before-filter articles to {ARTICLES_BEFORE_CSV}")
     print(f"[DONE] Saved NYT before-filter images to {IMAGES_BEFORE_CSV}")
-    print(f"[DONE] Saved NYT after-filter articles to {ARTICLES_AFTER_CSV}")
-    print(f"[DONE] Saved NYT after-filter images to {IMAGES_AFTER_CSV}")
+    print(f"[DONE] Saved NYT final articles to {ARTICLES_CSV}")
+    print(f"[DONE] Saved NYT final images to {IMAGES_CSV}")
 
 
 if __name__ == "__main__":

@@ -149,7 +149,12 @@ def image_heuristics(path):
 
             sample = image.copy()
             sample.thumbnail((180, 180))
-            pixels = list(sample.getdata())
+            sample = sample.convert("RGB")
+            raw_pixels = sample.tobytes()
+            pixels = [
+                (raw_pixels[index], raw_pixels[index + 1], raw_pixels[index + 2])
+                for index in range(0, len(raw_pixels) - 2, 3)
+            ]
             pixel_count = max(len(pixels), 1)
             light_fraction = sum(1 for r, g, b in pixels if r > 235 and g > 235 and b > 235) / pixel_count
             dark_fraction = sum(1 for r, g, b in pixels if r < 70 and g < 70 and b < 70) / pixel_count
