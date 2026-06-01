@@ -8,6 +8,7 @@ from climate_visualization_utils import (
     ARTICLE_FETCH_DELAY,
     API_PAGE_DELAY_SECONDS,
     SEARCH_TERMS,
+    build_review_priority_df,
     download_article_charts,
     extract_published_date_from_html,
     ensure_output_dirs,
@@ -41,6 +42,8 @@ OUTPUT_DIR = SCRIPT_DIR / "output" / NEWSPAPER_SLUG
 ARTICLES_CSV, IMAGES_CSV, IMAGE_DIR = ensure_output_dirs(OUTPUT_DIR)
 ARTICLES_BEFORE_CSV = OUTPUT_DIR / "articles_before_filter.csv"
 IMAGES_BEFORE_CSV = OUTPUT_DIR / "images_before_filter.csv"
+IMAGES_DOWNLOADED_CSV = OUTPUT_DIR / "images_downloaded.csv"
+IMAGES_REVIEW_PRIORITY_CSV = OUTPUT_DIR / "images_review_priority.csv"
 
 
 def build_search_url(term, page):
@@ -203,15 +206,20 @@ def main():
     )
     after_articles_df = sort_article_df(article_rows_after)
     after_images_df = sort_image_df(image_rows_after)
+    review_priority_df = build_review_priority_df(image_rows_after)
     after_articles_df.to_csv(ARTICLES_CSV, index=False, encoding="utf-8-sig")
     after_images_df.to_csv(IMAGES_CSV, index=False, encoding="utf-8-sig")
+    after_images_df.to_csv(IMAGES_DOWNLOADED_CSV, index=False, encoding="utf-8-sig")
+    review_priority_df.to_csv(IMAGES_REVIEW_PRIORITY_CSV, index=False, encoding="utf-8-sig")
 
-    print(f"\n[COUNT] Before filter | articles: {len(before_articles_df)} | images: {len(before_images_df)}")
-    print(f"[COUNT] After filter  | articles: {len(after_articles_df)} | images: {len(after_images_df)}")
-    print(f"[DONE] Saved BBC before-filter articles to {ARTICLES_BEFORE_CSV}")
-    print(f"[DONE] Saved BBC before-filter images to {IMAGES_BEFORE_CSV}")
+    print(f"\n[COUNT] All candidates | articles: {len(before_articles_df)} | images: {len(before_images_df)}")
+    print(f"[COUNT] Downloaded static images | articles: {len(after_articles_df)} | images: {len(after_images_df)}")
+    print(f"[DONE] Saved BBC all-candidate articles to {ARTICLES_BEFORE_CSV}")
+    print(f"[DONE] Saved BBC all-candidate images to {IMAGES_BEFORE_CSV}")
     print(f"[DONE] Saved BBC final articles to {ARTICLES_CSV}")
-    print(f"[DONE] Saved BBC final images to {IMAGES_CSV}")
+    print(f"[DONE] Saved BBC compatibility image CSV to {IMAGES_CSV}")
+    print(f"[DONE] Saved BBC downloaded images to {IMAGES_DOWNLOADED_CSV}")
+    print(f"[DONE] Saved BBC review-priority images to {IMAGES_REVIEW_PRIORITY_CSV}")
 
 
 if __name__ == "__main__":

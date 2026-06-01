@@ -6,9 +6,9 @@ import requests
 
 from climate_visualization_utils import (
     SEARCH_TERMS,
+    build_review_priority_df,
     download_candidate_images,
     ensure_output_dirs,
-    filter_nyt_multimedia_chart_candidates,
     get_active_windows,
     make_session,
     nyt_multimedia_to_candidates,
@@ -40,6 +40,8 @@ OUTPUT_DIR = SCRIPT_DIR / "output" / NEWSPAPER_SLUG
 ARTICLES_CSV, IMAGES_CSV, IMAGE_DIR = ensure_output_dirs(OUTPUT_DIR)
 ARTICLES_BEFORE_CSV = OUTPUT_DIR / "articles_before_filter.csv"
 IMAGES_BEFORE_CSV = OUTPUT_DIR / "images_before_filter.csv"
+IMAGES_DOWNLOADED_CSV = OUTPUT_DIR / "images_downloaded.csv"
+IMAGES_REVIEW_PRIORITY_CSV = OUTPUT_DIR / "images_review_priority.csv"
 
 
 def iter_date_slices(start_date, end_date, slice_days):
@@ -241,7 +243,6 @@ def main():
                             article_url=article_url,
                             image_dir=IMAGE_DIR,
                             seen_image_urls=seen_image_urls,
-                            candidate_filter=filter_nyt_multimedia_chart_candidates,
                         )
                         before_image_rows = image_results["before_rows"]
                         after_image_rows = image_results["after_rows"]
@@ -277,15 +278,20 @@ def main():
     )
     after_articles_df = sort_article_df(article_rows_after)
     after_images_df = sort_image_df(image_rows_after)
+    review_priority_df = build_review_priority_df(image_rows_after)
     after_articles_df.to_csv(ARTICLES_CSV, index=False, encoding="utf-8-sig")
     after_images_df.to_csv(IMAGES_CSV, index=False, encoding="utf-8-sig")
+    after_images_df.to_csv(IMAGES_DOWNLOADED_CSV, index=False, encoding="utf-8-sig")
+    review_priority_df.to_csv(IMAGES_REVIEW_PRIORITY_CSV, index=False, encoding="utf-8-sig")
 
-    print(f"\n[COUNT] Before filter | articles: {len(before_articles_df)} | images: {len(before_images_df)}")
-    print(f"[COUNT] After filter  | articles: {len(after_articles_df)} | images: {len(after_images_df)}")
-    print(f"[DONE] Saved NYT before-filter articles to {ARTICLES_BEFORE_CSV}")
-    print(f"[DONE] Saved NYT before-filter images to {IMAGES_BEFORE_CSV}")
+    print(f"\n[COUNT] All candidates | articles: {len(before_articles_df)} | images: {len(before_images_df)}")
+    print(f"[COUNT] Downloaded static images | articles: {len(after_articles_df)} | images: {len(after_images_df)}")
+    print(f"[DONE] Saved NYT all-candidate articles to {ARTICLES_BEFORE_CSV}")
+    print(f"[DONE] Saved NYT all-candidate images to {IMAGES_BEFORE_CSV}")
     print(f"[DONE] Saved NYT final articles to {ARTICLES_CSV}")
-    print(f"[DONE] Saved NYT final images to {IMAGES_CSV}")
+    print(f"[DONE] Saved NYT compatibility image CSV to {IMAGES_CSV}")
+    print(f"[DONE] Saved NYT downloaded images to {IMAGES_DOWNLOADED_CSV}")
+    print(f"[DONE] Saved NYT review-priority images to {IMAGES_REVIEW_PRIORITY_CSV}")
 
 
 if __name__ == "__main__":

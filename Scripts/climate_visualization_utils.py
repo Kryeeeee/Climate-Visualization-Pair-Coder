@@ -17,6 +17,14 @@ API_PAGE_DELAY_SECONDS = 1.0
 NYT_PAGE_DELAY_SECONDS = 3.0
 MAX_ARTICLES_PER_WINDOW_TERM = 50
 RETRY_STATUS_CODES = {403, 429, 500, 502, 503, 504}
+STATIC_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".svg", ".avif"}
+STATIC_IMAGE_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/svg+xml",
+    "image/avif",
+}
 
 WINDOWS = [
     {
@@ -87,8 +95,6 @@ CHART_KEYWORDS = [
     "graph",
     "graphic",
     "infographic",
-    "datawrapper",
-    "flourish",
     "plot",
     "diagram",
     "timeline",
@@ -126,7 +132,6 @@ NYT_MULTIMEDIA_CHART_TERMS = [
     "graphic",
     "graphics",
     "infographic",
-    "interactive",
     "map",
     "diagram",
     "table",
@@ -179,21 +184,6 @@ SRCSET_ATTRIBUTES = [
     "data-srcset",
 ]
 
-EMBED_PROVIDERS = [
-    {
-        "name": "datawrapper",
-        "pattern": re.compile(r"https?://datawrapper\.dwcdn\.net/([A-Za-z0-9]+)/(\d+)/?"),
-        "embed_url": lambda m: f"https://datawrapper.dwcdn.net/{m.group(1)}/{m.group(2)}/",
-        "context": "datawrapper chart",
-    },
-    {
-        "name": "flourish",
-        "pattern": re.compile(r"https?://flo\.uri\.sh/visualisation/(\d+)"),
-        "embed_url": lambda m: f"https://flo.uri.sh/visualisation/{m.group(1)}/embed",
-        "context": "flourish visualization",
-    },
-]
-
 _MONTH_NAMES = {
     "january": "01", "february": "02", "march": "03", "april": "04",
     "may": "05", "june": "06", "july": "07", "august": "08",
@@ -240,7 +230,7 @@ def sanitize_filename(value):
 
 def infer_extension_from_url(url):
     suffix = Path(url.split("?")[0]).suffix.lower()
-    if suffix in {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}:
+    if suffix in STATIC_IMAGE_EXTENSIONS:
         return suffix
     guessed, _ = mimetypes.guess_type(url)
     if guessed:
@@ -248,6 +238,18 @@ def infer_extension_from_url(url):
         if ext:
             return ext
     return ".jpg"
+
+
+def is_static_image_url(url):
+    suffix = Path(str(url).split("?")[0]).suffix.lower()
+    return not suffix or suffix in STATIC_IMAGE_EXTENSIONS
+
+
+def is_static_image_content_type(content_type):
+    if not content_type:
+        return True
+    normalized = content_type.split(";")[0].strip().lower()
+    return normalized in STATIC_IMAGE_MIME_TYPES
 
 
 def make_session():
@@ -345,6 +347,10 @@ def safe_get_text(session, url, context="request", max_attempts=5):
 def download_image(session, image_url, destination):
     try:
         response = request_with_retries(session, image_url, context=f"download {image_url}", stream=True)
+        if not is_static_image_content_type(response.headers.get("Content-Type", "")):
+            print(f"[INFO] Skipping non-static image response {image_url}: {response.headers.get('Content-Type', '')}")
+            response.close()
+            return False
         with open(destination, "wb") as handle:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
@@ -424,6 +430,71 @@ def save_outputs(article_rows, image_rows, articles_csv, images_csv):
     articles_df.to_csv(articles_csv, index=False, encoding="utf-8-sig")
     images_df.to_csv(images_csv, index=False, encoding="utf-8-sig")
     return articles_df, images_df
+
+
+def image_row_text(row):
+    return " ".join(
+        str(row.get(column, "") or "")
+        for column in [
+            "image_url",
+            "local_image_path",
+            "caption",
+            "credit",
+            "article_title",
+            "search_term",
+        ]
+    ).lower()
+
+
+def score_image_row(row):
+    combined = image_row_text(row)
+    positive_terms = sorted({
+        term
+        for term in set(CHART_KEYWORDS + NYT_MULTIMEDIA_CHART_TERMS)
+        if term in combined
+    })
+    negative_terms = sorted({
+        term
+        for term in set(PHOTO_KEYWORDS + NYT_MULTIMEDIA_PHOTO_TERMS)
+        if term in combined
+    })
+    has_positive_signal = bool(positive_terms)
+    auto_label = "likely_visualization" if has_positive_signal else "broad_candidate"
+    return {
+        "positive_chart_signal_count": len(positive_terms),
+        "positive_chart_signals": "|".join(positive_terms),
+        "negative_photo_signal_count": len(negative_terms),
+        "negative_photo_signals": "|".join(negative_terms),
+        "review_priority": 0 if has_positive_signal else 1,
+        "auto_review_label": auto_label,
+    }
+
+
+def build_review_priority_df(image_rows):
+    images_df = sort_image_df(image_rows)
+    if images_df.empty:
+        return images_df.assign(
+            positive_chart_signal_count=[],
+            positive_chart_signals=[],
+            negative_photo_signal_count=[],
+            negative_photo_signals=[],
+            review_priority=[],
+            auto_review_label=[],
+        )
+    scored_rows = [score_image_row(row) for row in images_df.to_dict("records")]
+    scored_df = pd.concat([images_df.reset_index(drop=True), pd.DataFrame(scored_rows)], axis=1)
+    return scored_df.sort_values(
+        by=[
+            "review_priority",
+            "positive_chart_signal_count",
+            "negative_photo_signal_count",
+            "published_date",
+            "newspaper",
+            "article_id",
+            "image_index",
+        ],
+        ascending=[True, False, True, True, True, True, True],
+    )
 
 
 def keyword_terms_for_matching():
@@ -542,66 +613,13 @@ def score_chart_candidate(candidate):
 
     positive_hits = sorted({term for term in CHART_KEYWORDS if term in combined})
     negative_hits = sorted({term for term in PHOTO_KEYWORDS if term in combined})
-    score = len(positive_hits) - (2 * len(negative_hits))
+    score = len(positive_hits)
     return score, positive_hits, negative_hits
 
 
 def is_chart_candidate(candidate):
     score, positive_hits, negative_hits = score_chart_candidate(candidate)
-    return score >= 1, score, positive_hits, negative_hits
-
-
-def _resolve_embed_image_url(session, embed_url):
-    """Fetch an embed page and extract its og:image or first <img> as the static image URL."""
-    try:
-        response = request_with_retries(session, embed_url, context=f"embed {embed_url}")
-        soup = BeautifulSoup(response.text, "html.parser")
-        for attr in ("og:image", "twitter:image"):
-            tag = soup.find("meta", property=attr) or soup.find("meta", attrs={"name": attr})
-            if tag and tag.get("content"):
-                return tag["content"].strip()
-        img = soup.find("img")
-        if img:
-            src = img.get("src") or img.get("data-src") or ""
-            if src:
-                return urljoin(embed_url, src)
-    except requests.RequestException:
-        pass
-    return ""
-
-
-def extract_embedded_chart_candidates(session, html, article_url, known_urls):
-    """Detect Datawrapper/Flourish iframes, fetch their pages, and return real image candidates."""
-    soup = BeautifulSoup(html, "html.parser")
-    candidates = []
-    for tag in soup.find_all(["iframe", "div", "figure"]):
-        src = next(
-            (tag.get(attr) for attr in ("src", "data-src", "data-url") if tag.get(attr)),
-            "",
-        )
-        if not src:
-            continue
-        for provider in EMBED_PROVIDERS:
-            m = provider["pattern"].search(src)
-            if not m:
-                continue
-            embed_url = provider["embed_url"](m)
-            image_url = _resolve_embed_image_url(session, embed_url)
-            if not image_url or image_url in known_urls:
-                break
-            known_urls.add(image_url)
-            parent = tag.parent
-            figcaption = parent.find("figcaption") if parent else None
-            caption = collect_text(figcaption) if figcaption else ""
-            candidates.append({
-                "image_url": image_url,
-                "caption": caption,
-                "credit": "",
-                "alt_text": provider["context"],
-                "context_text": provider["context"],
-            })
-            break
-    return candidates
+    return bool(positive_hits), score, positive_hits, negative_hits
 
 
 def extract_image_candidates(html, article_url, selectors, session=None):
@@ -623,10 +641,6 @@ def extract_image_candidates(html, article_url, selectors, session=None):
                 known_urls.add(image_url)
 
         for candidate in extra_chart_like_images(root, article_url, known_urls):
-            candidates.append(candidate)
-
-    if session is not None:
-        for candidate in extract_embedded_chart_candidates(session, html, article_url, known_urls):
             candidates.append(candidate)
 
     return candidates
@@ -725,7 +739,7 @@ def download_candidate_images(
     article_url,
     image_dir,
     seen_image_urls,
-    require_chart_match=True,
+    require_chart_match=False,
     candidate_filter=None,
 ):
     before_rows = []
@@ -754,6 +768,8 @@ def download_candidate_images(
 
     for index, candidate in enumerate(downloadable_candidates, start=1):
         image_url = candidate["image_url"]
+        if not is_static_image_url(image_url):
+            continue
         if image_url in seen_image_urls:
             continue
         seen_image_urls.add(image_url)

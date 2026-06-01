@@ -29,7 +29,6 @@ STRONG_CHART_TERMS = [
     "graphic",
     "graphics",
     "infographic",
-    "interactive",
     "map",
     "diagram",
     "table",
