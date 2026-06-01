@@ -7,12 +7,12 @@
 1. Open `Codebook/index.html` in a browser.
 2. Import one outlet image CSV: `Scripts/output/media/media_images.csv`.
 3. Import the matching media image folder: `Scripts/output/media/media_images/`, OR manually `Import media image files/folder for export` if images are from other outlets.
-4. Import the latest `status.xls` from [View here](https://drive.google.com/drive/folders/1SXc_id4yTMz2i4aqLveLccZUIxrz92-O).
+4. Import the latest `status.xls` from [here](https://drive.google.com/drive/folders/1SXc_id4yTMz2i4aqLveLccZUIxrz92-O).
 5. Select a media image row.
 6. Upload the original scientific figure.
 7. Fill in `Pair metadata` and complete all transformation coding fields.
 8. Click `Save coded pair` or `Save and next`.
-9. Click `Export` when finishing, then copy the newly completed entries into the existing `status.xls` and `climate_visualization_coding.csv` in [View here](https://drive.google.com/drive/folders/1SXc_id4yTMz2i4aqLveLccZUIxrz92-O). 
+9. Click `Export` when finishing, then copy the newly completed entries into the existing `status.xls` and `climate_visualization_coding.csv` in [here](https://drive.google.com/drive/folders/1SXc_id4yTMz2i4aqLveLccZUIxrz92-O).
 10. The next coding session starts by importing the latest `status.xls`.
 
 ## Collaboration
