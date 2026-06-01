@@ -5,49 +5,48 @@ const priorCoderStorageKey = "ipcc-image-codebook-last-coder";
 const rowStateStorageKey = "source-image-codebook-row-state-v1";
 const customFieldsStorageKey = "source-image-codebook-custom-fields-v1";
 const rowStatusGroups = ["bbc", "guardian", "nytimes", "other"];
+const optionValueAliases = {
+  evaluative_opinion: "opinion",
+};
 
 const codebookSections = [
   {
     key: "information_selection",
     title: "Information selection",
     description:
-      "How much of the original information space is preserved, reduced, or expanded in the media adaptation.",
+      "What data, scope, uncertainty, and source information are preserved, reduced, or expanded in the media adaptation.",
     fields: [
       {
-        id: "scenario_change",
-        label: "Scenario coverage change",
-        help: "Whether scenario coverage stays the same, is reduced, or is expanded relative to the original figure.",
-        options: ["same", "reduced_partial", "reduced_major", "expanded_partial", "expanded_major", "not_applicable"],
-      },
-      {
-        id: "variable_change",
-        label: "Variable coverage change",
-        help: "Whether variables or measures are removed or added relative to the original.",
+        id: "variables_scope",
+        label: "Variables scope",
+        help: "Whether data variables or measures are removed or added relative to the original, including thematic, spatial, or temporal variables.",
         options: ["same", "reduced", "expanded", "not_applicable"],
-      },
-      {
-        id: "spatial_change",
-        label: "Spatial scope change",
-        help: "Whether the adaptation narrows or broadens the geographic scope.",
-        options: ["same", "reduced_partial", "reduced_major", "expanded", "not_applicable"],
-      },
-      {
-        id: "temporal_change",
-        label: "Temporal scope change",
-        help: "Whether the adaptation narrows or broadens the time horizon.",
-        options: ["same", "reduced_partial", "reduced_major", "expanded", "not_applicable"],
+        extraInputs: [
+          { id: "variables_data_added_count", label: "Data variables added", type: "number", placeholder: "0" },
+          { id: "variables_data_removed_count", label: "Data variables removed", type: "number", placeholder: "0" },
+          { id: "variables_spatial_added_count", label: "Spatial variables added", type: "number", placeholder: "0" },
+          { id: "variables_spatial_removed_count", label: "Spatial variables removed", type: "number", placeholder: "0" },
+          { id: "variables_temporal_added_count", label: "Temporal variables added", type: "number", placeholder: "0" },
+          { id: "variables_temporal_removed_count", label: "Temporal variables removed", type: "number", placeholder: "0" },
+        ],
       },
       {
         id: "uncertainty_visibility",
         label: "Uncertainty visibility",
-        help: "How visible uncertainty remains in the adapted version.",
-        options: ["retained", "simplified", "removed", "not_applicable"],
+        help: "How visible uncertainty, confidence, ranges, scenarios, or caveats remain in the adapted version.",
+        options: ["same", "simplified", "removed", "not_applicable"],
+        extraInputs: [
+          { id: "uncertainty_changed_type", label: "What uncertainty changed?", type: "textarea", placeholder: "e.g. confidence interval, scenario range, model spread, caveat text", showWhen: ["simplified", "removed"], requiredWhen: ["simplified", "removed"] },
+        ],
       },
       {
         id: "source_attribution_visibility",
         label: "Source attribution visibility",
-        help: "How clearly the scientific source or data provider is identified in the adaptation.",
-        options: ["strong", "moderate", "weak", "absent"],
+        help: "Whether the scientific source or data provider is visible in the adaptation.",
+        options: ["not_visible", "visible"],
+        extraInputs: [
+          { id: "source_attribution_type", label: "Visible source attribution type", type: "choice", options: ["source_name_only", "full_source_link", "article_text_link"], showWhen: ["visible"], requiredWhen: ["visible"] },
+        ],
       },
     ],
   },
@@ -55,23 +54,21 @@ const codebookSections = [
     key: "visual_form",
     title: "Visual form",
     description:
-      "How the chart form, density, emphasis, and aesthetic presentation change in the adaptation.",
+      "How the data is visually represented through chart form, layout, mapping, annotations, color, and decoration.",
     fields: [
       {
         id: "chart_type_relation",
         label: "Chart type relation",
-        help: "Whether the adaptation keeps the same chart type, lightly modifies it, or changes it.",
-        options: ["same", "modified", "changed"],
-      },
-      {
-        id: "chart_form_familiarity_shift",
-        label: "Chart-form familiarity shift",
-        help: "Whether the resulting chart form seems more or less familiar to general audiences.",
-        options: ["lower", "similar", "higher", "not_applicable"],
+        help: "Whether the adaptation keeps the same chart type or modifies it.",
+        options: ["same", "modified"],
+        extraInputs: [
+          { id: "chart_type_from", label: "From chart type", type: "text", placeholder: "e.g. multi-panel line chart", showWhen: ["modified"], requiredWhen: ["modified"] },
+          { id: "chart_type_to", label: "To chart type", type: "text", placeholder: "e.g. single line chart", showWhen: ["modified"], requiredWhen: ["modified"] },
+        ],
       },
       {
         id: "visual_density_change",
-        label: "Visual density change",
+        label: "Visual density",
         help: "Compare clutter, number of marks, and overall information packing.",
         options: ["denser", "similar", "simpler"],
       },
@@ -79,31 +76,70 @@ const codebookSections = [
         id: "layout_reordering",
         label: "Layout reordering",
         help: "Whether panels, legends, labels, annotations, or other visual components are rearranged relative to the source figure.",
-        options: ["none", "minor", "major"],
+        options: ["yes", "no"],
       },
       {
-        id: "legend_dependency_change",
-        label: "Legend dependency change",
-        help: "Whether viewers must rely on legends more or less to read the figure.",
-        options: ["higher", "similar", "lower", "not_applicable"],
+        id: "legend",
+        label: "Legend",
+        help: "Whether the legend is kept, added, removed, or not relevant to this figure.",
+        options: ["maintained", "added", "removed", "not_applicable"],
       },
       {
-        id: "visual_emphasis_added",
-        label: "Visual emphasis added",
-        help: "Additional highlighting, spotlighting, arrows, contrast, or attention cues.",
-        options: ["none", "low", "high"],
-      },
-      {
-        id: "style_shift",
-        label: "Style shift",
-        help: "Overall aesthetic change relative to the original figure.",
-        options: ["none", "more_minimal", "more_editorial", "more_decorative", "more_technical"],
+        id: "visual_emphasis",
+        label: "Visual emphasis",
+        help: "Whether highlighting, spotlighting, arrows, contrast, or attention cues are maintained, added, removed, or changed.",
+        options: ["maintained", "changed", "added", "removed", "not_applicable"],
+        extraInputs: [
+          { id: "visual_emphasis_description", label: "How emphasis changed", type: "textarea", placeholder: "e.g. changed from neutral labels to warning-colored highlight", showWhen: ["changed"], requiredWhen: ["changed"] },
+        ],
       },
       {
         id: "color_function_shift",
         label: "Color-function shift",
         help: "How color use changes in communicative function.",
-        options: ["none", "more_categorical", "more_sequential", "more_affective_warning", "more_muted"],
+        options: ["same", "more_categorical", "more_sequential", "more_affective_warning", "more_muted", "not_applicable"],
+      },
+      {
+        id: "visual_mapping",
+        label: "Visual mapping",
+        help: "Whether mappings between data variables and visual channels are maintained, changed, added, or removed.",
+        options: ["same", "changed", "added", "removed", "not_applicable"],
+        extraInputs: [
+          { id: "visual_mapping_description", label: "How mapping changed", type: "textarea", placeholder: "e.g. scenarios moved from color to line style", showWhen: ["changed", "added", "removed"], requiredWhen: ["changed"] },
+        ],
+      },
+      {
+        id: "annotations",
+        label: "Annotations",
+        help: "Whether annotations inside the visualization are maintained, added, removed, or changed.",
+        options: ["maintained", "added", "removed", "changed", "not_applicable"],
+        extraInputs: [
+          { id: "annotations_description", label: "How annotations changed", type: "textarea", placeholder: "e.g. added threshold label or takeaway callout", showWhen: ["added", "changed"], requiredWhen: ["added", "changed"] },
+        ],
+      },
+      {
+        id: "external_notes_explanations",
+        label: "Notes / explanations outside the visualization",
+        help: "Whether explanatory notes outside the chart area are maintained, added, removed, or changed.",
+        options: ["maintained", "added", "removed", "changed", "not_applicable"],
+        extraInputs: [
+          { id: "external_notes_explanations_description", label: "How notes changed", type: "textarea", placeholder: "e.g. shortened caveat into one sentence", showWhen: ["changed", "added"], requiredWhen: ["changed"] },
+        ],
+      },
+      {
+        id: "decorations",
+        label: "Decorations",
+        help: "Whether decorative or illustrative visual elements are the same, added, removed, or not applicable.",
+        options: ["same", "added", "removed", "not_applicable"],
+      },
+      {
+        id: "color_palette",
+        label: "Color palette",
+        help: "Whether the overall palette is maintained or changed.",
+        options: ["maintained", "changed", "not_applicable"],
+        extraInputs: [
+          { id: "color_palette_description", label: "How palette changed", type: "textarea", placeholder: "e.g. neutral blue palette changed to red warning palette", showWhen: ["changed"], requiredWhen: ["changed"] },
+        ],
       },
     ],
   },
@@ -114,22 +150,32 @@ const codebookSections = [
       "How much verbal framing and interpretive scaffolding are added in the media adaptation.",
     fields: [
       {
-        id: "title_function",
-        label: "Title function",
-        help: "How the main title frames the intended takeaway.",
-        options: ["descriptive", "takeaway", "evaluative", "alarming", "solution_oriented", "absent"],
+        id: "media_title_function",
+        label: "Media title function",
+        help: "How the media adaptation title frames the intended takeaway.",
+        multiSelect: true,
+        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "absent"],
       },
       {
-        id: "subtitle_function",
-        label: "Subtitle function",
-        help: "Role of subtitle or deck, if present.",
-        options: ["none", "description", "explanation", "interpretation", "source_method"],
+        id: "scientific_title_function",
+        label: "Scientific title function",
+        help: "How the original scientific figure title frames the content.",
+        multiSelect: true,
+        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "absent"],
       },
       {
-        id: "annotation_function",
-        label: "Annotation function",
-        help: "Most salient role of annotations or labels.",
-        options: ["none", "label", "explain_threshold", "explain_cause", "call_to_action", "mixed"],
+        id: "media_subtitle_function",
+        label: "Media subtitle function",
+        help: "Role of media subtitle, deck, or explanatory text directly attached to the visual.",
+        multiSelect: true,
+        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "source_method", "absent"],
+      },
+      {
+        id: "scientific_subtitle_function",
+        label: "Scientific subtitle function",
+        help: "Role of subtitle, caption, or methodological text attached to the original scientific figure.",
+        multiSelect: true,
+        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "source_method", "absent"],
       },
       {
         id: "narrative_frame",
@@ -171,6 +217,7 @@ const elements = {
   mediaPreview: document.getElementById("mediaPreview"),
   csvInput: document.getElementById("csvInput"),
   mediaImageFilesInput: document.getElementById("mediaImageFilesInput"),
+  mediaImageFileSelect: document.getElementById("mediaImageFileSelect"),
   rowStatusCsvInput: document.getElementById("rowStatusCsvInput"),
   exportRowStatusBtn: document.getElementById("exportRowStatusBtn"),
   mediaCsvSelect: document.getElementById("mediaCsvSelect"),
@@ -216,7 +263,9 @@ let currentFileData = {
 };
 let importedMediaImageFiles = new Map();
 let importedMediaImageDataUrls = new Map();
+let importedMediaImageFileList = [];
 let currentImportedSourceGroup = "other";
+let importMode = "";
 
 init();
 
@@ -229,9 +278,10 @@ function init() {
 
   elements.csvInput.addEventListener("change", handleCsvImport);
   elements.mediaImageFilesInput.addEventListener("change", handleMediaImageFilesImport);
+  elements.mediaImageFileSelect.addEventListener("change", handleImportedMediaImageSelection);
   elements.rowStatusCsvInput.addEventListener("change", handleRowStatusImport);
   elements.exportRowStatusBtn.addEventListener("click", exportRowStatusCsv);
-  elements.mediaCsvSelect.addEventListener("change", handleMediaRowSelection);
+  elements.mediaCsvSelect.addEventListener("change", () => handleMediaRowSelection({ resetCoding: true }));
   elements.prevRowBtn.addEventListener("click", () => moveMediaSelection(-1));
   elements.nextRowBtn.addEventListener("click", () => moveMediaSelection(1));
   elements.markNotImportantBtn.addEventListener("click", () => setCurrentRowDisposition("not_important"));
@@ -311,6 +361,10 @@ function imageLookupKeysForFile(file) {
   ].filter(Boolean);
 }
 
+function isImageFile(file) {
+  return file.type.startsWith("image/") || /\.(avif|gif|jpe?g|png|svg|webp)$/i.test(file.name || "");
+}
+
 function imageLookupKeysForRow(row) {
   const localPath = normalizeImageLookupKey(row?.local_image_path || "");
   const filename = normalizeImageLookupKey(extractFilename(localPath));
@@ -362,8 +416,25 @@ function renderCodebook(preservedSelections = null) {
       fieldFragment.querySelector(".field-card-label").textContent = field.custom ? `* ${field.label}` : field.label;
       fieldFragment.querySelector(".field-card-help").textContent = field.help;
       const chipGroup = fieldFragment.querySelector(".chip-group");
-      chipGroup.appendChild(makeChip(field.id, "", "Unset"));
-      field.options.forEach((option) => chipGroup.appendChild(makeChip(field.id, option, prettifyOption(option))));
+      chipGroup.appendChild(makeChip(field, "", "Unset"));
+      field.options.forEach((option) => chipGroup.appendChild(makeChip(field, option, prettifyOption(option))));
+      chipGroup.addEventListener("change", (event) => {
+        handleChipChange(event, field);
+        syncFieldExtraInputs(fieldCard, field);
+      });
+      if (field.extraInputs?.length) {
+        const extraGroup = document.createElement("div");
+        extraGroup.className = "field-extra-grid";
+        field.extraInputs.forEach((extraInput) => {
+          const extraLabel = document.createElement("label");
+          extraLabel.className = `field field-extra${extraInput.type === "number" ? " field-extra-number" : ""}`;
+          extraLabel.appendChild(makeExtraInputLabel(extraInput));
+          extraLabel.appendChild(makeExtraInputControl(field, extraInput));
+          extraGroup.appendChild(extraLabel);
+        });
+        fieldCard.appendChild(extraGroup);
+        syncFieldExtraInputs(fieldCard, field);
+      }
       if (field.custom) {
         fieldHead.classList.add("with-delete");
         deleteButton.classList.remove("hidden");
@@ -394,15 +465,117 @@ function renderCodebook(preservedSelections = null) {
   }
 }
 
-function makeChip(groupName, optionValue, optionLabel) {
+function makeChip(field, optionValue, optionLabel) {
   const wrapper = document.createElement("div");
   wrapper.className = "chip-option";
-  const inputId = `${groupName}__${optionValue || "unset"}`;
+  const inputId = `${field.id}__${optionValue || "unset"}`;
+  const inputType = field.multiSelect ? "checkbox" : "radio";
   wrapper.innerHTML = `
-    <input type="radio" name="${groupName}" id="${inputId}" value="${optionValue}">
+    <input type="${inputType}" name="${field.id}" id="${inputId}" value="${optionValue}">
     <label for="${inputId}">${optionLabel}</label>
   `;
   return wrapper;
+}
+
+function handleChipChange(event, field) {
+  if (!field.multiSelect) return;
+  const changedInput = event.target;
+  if (!(changedInput instanceof HTMLInputElement) || !changedInput.checked) {
+    ensureMultiSelectHasFallback(field);
+    return;
+  }
+  const inputs = Array.from(document.querySelectorAll(`input[name="${field.id}"]`));
+  if (changedInput.value === "" || changedInput.value === "absent") {
+    inputs.forEach((input) => {
+      input.checked = input === changedInput;
+    });
+    return;
+  }
+  inputs.forEach((input) => {
+    if (input.value === "" || input.value === "absent") {
+      input.checked = false;
+    }
+  });
+}
+
+function ensureMultiSelectHasFallback(field) {
+  const inputs = Array.from(document.querySelectorAll(`input[name="${field.id}"]`));
+  if (!inputs.some((input) => input.checked)) {
+    const unsetInput = document.getElementById(`${field.id}__unset`);
+    if (unsetInput) unsetInput.checked = true;
+  }
+}
+
+function makeExtraInputLabel(extraInput) {
+  const labelText = document.createElement("span");
+  labelText.textContent = extraInput.label;
+  return labelText;
+}
+
+function makeExtraInputControl(field, extraInput) {
+  let control;
+  if (extraInput.type === "textarea") {
+    control = document.createElement("textarea");
+    control.rows = 1;
+    control.addEventListener("input", () => autoResizeTextarea(control));
+  } else if (extraInput.type === "choice") {
+    control = document.createElement("select");
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "Select";
+    control.appendChild(emptyOption);
+    (extraInput.options || []).forEach((optionValue) => {
+      const option = document.createElement("option");
+      option.value = optionValue;
+      option.textContent = prettifyOption(optionValue);
+      control.appendChild(option);
+    });
+  } else {
+    control = document.createElement("input");
+    control.type = extraInput.type || "text";
+  }
+  control.id = extraInput.id;
+  control.placeholder = extraInput.placeholder || "";
+  control.dataset.parentField = field.id;
+  control.dataset.showWhen = (extraInput.showWhen || []).join("|");
+  control.dataset.requiredWhen = (extraInput.requiredWhen || []).join("|");
+  return control;
+}
+
+function syncFieldExtraInputs(fieldCard, field) {
+  const selectedValues = getFieldValues(field);
+  const extraGroup = fieldCard.querySelector(".field-extra-grid");
+  let hasVisibleExtra = false;
+  field.extraInputs?.forEach((extraInput) => {
+    const input = document.getElementById(extraInput.id);
+    const label = input?.closest(".field-extra");
+    if (!input || !label) return;
+    const showWhen = extraInput.showWhen || [];
+    const shouldShow = !showWhen.length || selectedValues.some((value) => showWhen.includes(value));
+    hasVisibleExtra = hasVisibleExtra || shouldShow;
+    label.classList.toggle("hidden", !shouldShow);
+    input.disabled = !shouldShow;
+    if (!shouldShow) input.value = "";
+    if (shouldShow && input.tagName === "TEXTAREA") autoResizeTextarea(input);
+  });
+  extraGroup?.classList.toggle("hidden", !hasVisibleExtra);
+}
+
+function syncAllFieldExtraInputs() {
+  codebookSections.forEach((section) => {
+    section.fields.forEach((field) => {
+      const input = document.querySelector(`input[name="${field.id}"]`);
+      const fieldCard = input?.closest(".field-card");
+      if (fieldCard) syncFieldExtraInputs(fieldCard, field);
+    });
+  });
+}
+
+function getCodebookOutputFields() {
+  return codebookSections.flatMap((section) => section.fields.flatMap((field) => [
+    field.id,
+    ...(field.extraInputs || []).map((extraInput) => extraInput.id),
+  ]));
 }
 
 function prettifyOption(value) {
@@ -488,6 +661,8 @@ function renderPreviewFromDataUrl(target, dataUrl, caption, fallbackText) {
 function handleCsvImport(event) {
   const file = event.target.files[0];
   if (!file) return;
+  importMode = "csv";
+  updateImportModeControls();
   const reader = new FileReader();
   reader.onload = () => {
     const parsedRows = parseCsv(reader.result);
@@ -505,7 +680,12 @@ function handleCsvImport(event) {
 }
 
 function handleMediaImageFilesImport(event) {
-  const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+  const files = Array.from(event.target.files || [])
+    .filter(isImageFile)
+    .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name));
+  importMode = files.length ? "folder" : "";
+  updateImportModeControls();
+  importedMediaImageFileList = files;
   importedMediaImageFiles = new Map();
   importedMediaImageDataUrls = new Map();
   files.forEach((file) => {
@@ -515,12 +695,66 @@ function handleMediaImageFilesImport(event) {
       }
     });
   });
+  populateImportedMediaImageFileSelect();
   if (currentMediaRow) {
     hydrateMediaPreviewFromImportedFile(currentMediaRow);
   }
   const matchedCount = importedRows.filter((row) => findImportedMediaImageFile(row)).length;
   const suffix = importedRows.length ? ` Matched ${matchedCount} of ${importedRows.length} imported CSV rows.` : "";
   alert(`Imported ${files.length} media image file(s) for export.${suffix}`);
+}
+
+function updateImportModeControls() {
+  const csvMode = importMode === "csv";
+  const folderMode = importMode === "folder";
+  elements.csvInput.disabled = folderMode;
+  elements.mediaImageFilesInput.disabled = csvMode;
+  if (elements.mediaImageFileSelect) {
+    elements.mediaImageFileSelect.disabled = csvMode || !importedMediaImageFileList.length;
+  }
+}
+
+function populateImportedMediaImageFileSelect() {
+  if (!elements.mediaImageFileSelect) return;
+  if (!importedMediaImageFileList.length) {
+    elements.mediaImageFileSelect.innerHTML = `<option value="">No media image folder imported</option>`;
+    elements.mediaImageFileSelect.disabled = true;
+    return;
+  }
+  const options = [`<option value="">Select an imported media image</option>`];
+  importedMediaImageFileList.forEach((file, index) => {
+    const label = file.webkitRelativePath || file.name;
+    options.push(`<option value="${index}">${escapeHtml(label)}</option>`);
+  });
+  elements.mediaImageFileSelect.innerHTML = options.join("");
+  elements.mediaImageFileSelect.disabled = importMode === "csv";
+}
+
+async function handleImportedMediaImageSelection() {
+  const selectedIndex = Number(elements.mediaImageFileSelect.value);
+  const file = Number.isInteger(selectedIndex) ? importedMediaImageFileList[selectedIndex] : null;
+  if (!file) {
+    currentFiles.media_image = null;
+    currentFileData.media_image = null;
+    if (currentMediaRow) {
+      renderPreviewFromPath(elements.mediaPreview, currentMediaRow.local_image_path || "", "No media image selected");
+      hydrateMediaPreviewFromImportedFile(currentMediaRow);
+    } else {
+      renderPreview(elements.mediaPreview, null);
+    }
+    return;
+  }
+
+  currentFiles.media_image = file;
+  currentFileData.media_image = null;
+  elements.mediaImageInput.value = "";
+  renderPreview(elements.mediaPreview, file);
+  try {
+    currentFileData.media_image = await readFileAsDataUrl(file);
+  } catch {
+    currentFileData.media_image = null;
+  }
+  tryAutoMatchMediaFile(file);
 }
 
 function detectSourceGroupFromFilename(filename) {
@@ -618,11 +852,47 @@ function populateMediaCsvSelect() {
   updateNavigationButtons();
 }
 
-function handleMediaRowSelection() {
+function handleMediaRowSelection({ resetCoding = false } = {}) {
+  if (resetCoding) {
+    clearCodingStateForMediaRowChange();
+  }
   const selectedIndex = elements.mediaCsvSelect.value;
   currentMediaRow = importedRows.find((row) => row.__rowIndex === selectedIndex) || null;
   applyMediaRow(currentMediaRow);
   updateNavigationButtons();
+}
+
+function clearCodingStateForMediaRowChange() {
+  activeLoadedRecord = null;
+  document.getElementById("source_organization").value = "";
+  document.getElementById("source_figure_id").value = "";
+  document.getElementById("overall_adaptation_intensity").value = "";
+  document.getElementById("coding_confidence").value = "";
+  elements.coderNotesInput.value = "";
+  autoResizeTextarea(elements.coderNotesInput);
+
+  currentFiles.media_image = null;
+  currentFiles.source_image = null;
+  currentFileData.media_image = null;
+  currentFileData.source_image = null;
+  elements.mediaImageInput.value = "";
+  elements.sourceImageInput.value = "";
+  if (elements.mediaImageFileSelect) {
+    elements.mediaImageFileSelect.value = "";
+  }
+  renderPreview(elements.mediaPreview, null);
+  renderPreview(elements.sourcePreview, null);
+
+  codebookSections.forEach((section) => {
+    section.fields.forEach((field) => {
+      restoreFieldSelection(field, "");
+      field.extraInputs?.forEach((extraInput) => {
+        const input = document.getElementById(extraInput.id);
+        if (input) input.value = "";
+      });
+    });
+  });
+  syncAllFieldExtraInputs();
 }
 
 function applyMediaRow(row) {
@@ -700,7 +970,7 @@ function moveMediaSelection(direction) {
     ? (direction > 0 ? 0 : rows.length - 1)
     : Math.max(0, Math.min(rows.length - 1, currentIndex + direction));
   elements.mediaCsvSelect.value = rows[nextIndex].__rowIndex;
-  handleMediaRowSelection();
+  handleMediaRowSelection({ resetCoding: true });
 }
 
 function updateNavigationButtons() {
@@ -726,11 +996,26 @@ function getRadioValue(name) {
   return checked ? checked.value : "";
 }
 
+function getFieldValue(field) {
+  if (!field.multiSelect) {
+    return getRadioValue(field.id);
+  }
+  return getFieldValues(field).filter(Boolean).join("|");
+}
+
+function getFieldValues(field) {
+  const checkedInputs = Array.from(document.querySelectorAll(`input[name="${field.id}"]:checked`));
+  return checkedInputs.map((input) => normalizeOptionValue(input.value));
+}
+
 function captureCodebookSelections() {
   const selections = {};
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
-      selections[field.id] = getRadioValue(field.id);
+      selections[field.id] = getFieldValue(field);
+      field.extraInputs?.forEach((extraInput) => {
+        selections[extraInput.id] = getFormValue(extraInput.id);
+      });
     });
   });
   return selections;
@@ -739,11 +1024,40 @@ function captureCodebookSelections() {
 function restoreCodebookSelections(selections) {
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
-      const optionValue = selections[field.id] || "";
-      const radio = document.getElementById(`${field.id}__${optionValue || "unset"}`) || document.getElementById(`${field.id}__unset`);
-      if (radio) radio.checked = true;
+      restoreFieldSelection(field, selections[field.id] || "");
+      field.extraInputs?.forEach((extraInput) => {
+        const input = document.getElementById(extraInput.id);
+        if (input) input.value = selections[extraInput.id] || "";
+      });
     });
   });
+  syncAllFieldExtraInputs();
+}
+
+function normalizeOptionValue(value) {
+  return optionValueAliases[value] || value;
+}
+
+function restoreFieldSelection(field, value) {
+  const values = String(value || "")
+    .split("|")
+    .map((item) => normalizeOptionValue(item.trim()))
+    .filter(Boolean);
+  const inputs = Array.from(document.querySelectorAll(`input[name="${field.id}"]`));
+  inputs.forEach((input) => {
+    input.checked = false;
+  });
+  if (!values.length) {
+    const unsetInput = document.getElementById(`${field.id}__unset`);
+    if (unsetInput) unsetInput.checked = true;
+    return;
+  }
+  const normalizedValues = values.includes("absent") ? ["absent"] : values;
+  normalizedValues.forEach((optionValue) => {
+    const input = document.getElementById(`${field.id}__${optionValue || "unset"}`);
+    if (input) input.checked = true;
+  });
+  if (field.multiSelect) ensureMultiSelectHasFallback(field);
 }
 
 function buildRecordId() {
@@ -813,7 +1127,10 @@ async function collectRecord() {
 
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
-      record[field.id] = getRadioValue(field.id);
+      record[field.id] = getFieldValue(field);
+      field.extraInputs?.forEach((extraInput) => {
+        record[extraInput.id] = getFormValue(extraInput.id);
+      });
     });
   });
   return record;
@@ -839,6 +1156,13 @@ function validateRecord(record, { forExport = false } = {}) {
       if (!record[field.id]) {
         requiredMessages.push(`Code "${field.label}".`);
       }
+      field.extraInputs?.forEach((extraInput) => {
+        const selectedValue = record[field.id] || "";
+        const requiredWhen = extraInput.requiredWhen || [];
+        if (requiredWhen.includes(selectedValue) && !record[extraInput.id]) {
+          requiredMessages.push(`Complete "${extraInput.label}" for "${field.label}".`);
+        }
+      });
     });
   });
 
@@ -900,6 +1224,9 @@ function moveToNextAfterSave() {
   currentFiles.media_image = null;
   currentFileData.media_image = null;
   elements.mediaImageInput.value = "";
+  if (elements.mediaImageFileSelect) {
+    elements.mediaImageFileSelect.value = "";
+  }
   if (canAdvance) {
     elements.mediaCsvSelect.value = rows[currentIndex + 1].__rowIndex;
     handleMediaRowSelection();
@@ -915,10 +1242,14 @@ function moveToNextAfterSave() {
   renderPreview(elements.sourcePreview, null);
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
-      const unsetRadio = document.getElementById(`${field.id}__unset`);
-      if (unsetRadio) unsetRadio.checked = true;
+      restoreFieldSelection(field, "");
+      field.extraInputs?.forEach((extraInput) => {
+        const input = document.getElementById(extraInput.id);
+        if (input) input.value = "";
+      });
     });
   });
+  syncAllFieldExtraInputs();
   document.getElementById("source_organization").value = preservedSourceOrganization;
   document.getElementById("coder_name").value = preservedCoder;
   updateRecordId();
@@ -981,10 +1312,14 @@ function resetForm(initialLoad = false) {
 
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
-      const unsetRadio = document.getElementById(`${field.id}__unset`);
-      if (unsetRadio) unsetRadio.checked = true;
+      restoreFieldSelection(field, "");
+      field.extraInputs?.forEach((extraInput) => {
+        const input = document.getElementById(extraInput.id);
+        if (input) input.value = "";
+      });
     });
   });
+  syncAllFieldExtraInputs();
 
   currentMediaRow = null;
   elements.mediaCsvSelect.value = "";
@@ -994,6 +1329,9 @@ function resetForm(initialLoad = false) {
 
   elements.mediaImageInput.value = "";
   elements.sourceImageInput.value = "";
+  if (elements.mediaImageFileSelect) {
+    elements.mediaImageFileSelect.value = "";
+  }
   currentFiles.media_image = null;
   currentFiles.source_image = null;
   currentFileData.media_image = null;
@@ -1039,12 +1377,14 @@ function loadRecordIntoForm(recordId) {
 
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
-      const optionValue = record[field.id] || "";
-      const targetId = `${field.id}__${optionValue || "unset"}`;
-      const radio = document.getElementById(targetId) || document.getElementById(`${field.id}__unset`);
-      if (radio) radio.checked = true;
+      restoreFieldSelection(field, record[field.id] || "");
+      field.extraInputs?.forEach((extraInput) => {
+        const input = document.getElementById(extraInput.id);
+        if (input) input.value = record[extraInput.id] || "";
+      });
     });
   });
+  syncAllFieldExtraInputs();
 
   currentFiles.media_image = null;
   currentFiles.source_image = null;
@@ -1149,7 +1489,7 @@ async function exportCsv() {
     "media_csv_local_path",
     "media_csv_article_id",
     "media_csv_image_url",
-    ...codebookSections.flatMap((section) => section.fields.map((field) => field.id)),
+    ...getCodebookOutputFields(),
     "coded_at",
   ];
 
@@ -1571,7 +1911,7 @@ function setCurrentRowDisposition(disposition) {
   }
   const nextRow = rows.find((row) => row.__rowIndex !== currentMediaRow.__rowIndex) || rows[0];
   elements.mediaCsvSelect.value = nextRow.__rowIndex;
-  handleMediaRowSelection();
+  handleMediaRowSelection({ resetCoding: true });
 }
 
 function clearCompletedRowStates() {

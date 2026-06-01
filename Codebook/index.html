@@ -11,8 +11,8 @@
     <div>
       <h1>Climate Visualization Pair Coder</h1>
       <p class="subtitle">
-        Import a scraped media-image CSV, select a media adaptation image, pair it with an original scientific figure,
-        and code the transformation. Media outlet, title, URL, and publication date are filled automatically.
+        Import a media-image CSV or media image folder, select a media adaptation image, pair it with an original scientific figure,
+        and code the transformation.
       </p>
     </div>
     <div class="hero-actions">
@@ -40,7 +40,6 @@
             <div class="image-card-head">
               <h3>Original scientific figure</h3>
               <label class="field inline-upload">
-                <span>Upload original scientific image</span>
                 <input id="source_image" type="file" accept="image/*" aria-label="Upload original scientific image">
               </label>
             </div>
@@ -61,6 +60,12 @@
           <span>Import media image files/folder for export</span>
             <input id="mediaImageFilesInput" type="file" accept="image/*" multiple webkitdirectory aria-label="Import media image files or folder for export">
         </div>
+        <label class="field">
+          <span>Select imported media image file</span>
+          <select id="mediaImageFileSelect" disabled>
+            <option value="">No media image folder imported</option>
+          </select>
+        </label>
         <div class="row-status-tools">
             <label class="field">
               <span>Import status file</span>
