@@ -24,5 +24,6 @@ Use `Import status file` / `Export status file` to track progress. Share the sam
 
 ## Notes
 
+- Source figure ID naming: Use the original figure number. If none exists, use the figure title + time (year and month), such as ERA5 Global Temperature 202410.
 - `Mark not important`, `Mark source unclear`, `Delete row` affect the local status, not the original outlet CSV.
 - You can manually add new values in `Source organization` and `Media outlet`, and add custom items in each `Transformation coding` section.
