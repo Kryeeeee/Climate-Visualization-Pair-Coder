@@ -73,22 +73,18 @@
             </label>
             <button id="exportRowStatusBtn" class="button subtle small" type="button">Export status file</button>
           </div>
-        <div class="grid two compact-grid">
-          <label class="field">
+        <div class="media-select-row">
+          <label class="field media-select-field">
             <span>Select imported media image</span>
             <select id="mediaCsvSelect">
               <option value="">No CSV imported</option>
             </select>
           </label>
-          <label class="field">
-            <span>Or upload media image file</span>
-              <input id="media_image" type="file" accept="image/*" aria-label="Upload media image file">
-          </label>
-        </div>
-        <div class="nav-actions">
-          <button id="prevRowBtn" class="button subtle small" type="button">Previous</button>
-          <div id="mediaRowProgress" class="progress-pill">0 / 0</div>
-          <button id="nextRowBtn" class="button subtle small" type="button">Next</button>
+          <div class="nav-actions">
+            <button id="prevRowBtn" class="button subtle small" type="button">Previous</button>
+            <div id="mediaRowProgress" class="progress-pill">0 / 0</div>
+            <button id="nextRowBtn" class="button subtle small" type="button">Next</button>
+          </div>
         </div>
         <div class="row-review-actions">
           <button id="markNotImportantBtn" class="button subtle small" type="button">Mark not important</button>
@@ -137,20 +133,24 @@
               <option value="The New York Times"></option>
             </datalist>
           </label>
-          <label class="field full readonly">
+          <label class="field full">
             <span>Media article title</span>
-            <input id="media_article_title" type="text" readonly>
+            <input id="media_article_title" type="text">
           </label>
-          <label class="field full readonly">
+          <label class="field full">
             <span>Media article URL</span>
             <div class="readonly-link-row">
-              <input id="media_article_url" type="text" readonly>
+              <input id="media_article_url" type="text">
               <a id="mediaArticleUrlLink" class="field-link disabled" href="#" target="_blank" rel="noopener noreferrer">Open article</a>
             </div>
           </label>
-          <label class="field readonly">
+          <label class="field">
             <span>Media publication date</span>
-            <input id="media_publication_date" type="text" readonly>
+            <input id="media_publication_date" type="text">
+          </label>
+          <label class="field">
+            <span>Media updated date</span>
+            <input id="media_updated_date" type="text">
           </label>
         </div>
       </section>

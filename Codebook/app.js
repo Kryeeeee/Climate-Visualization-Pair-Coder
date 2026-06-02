@@ -1,7 +1,5 @@
 const recordsStorageKey = "source-image-codebook-records-v3";
-const priorRecordsStorageKey = "ipcc-image-codebook-records-v2";
 const coderStorageKey = "source-image-codebook-last-coder";
-const priorCoderStorageKey = "ipcc-image-codebook-last-coder";
 const rowStateStorageKey = "source-image-codebook-row-state-v1";
 const customFieldsStorageKey = "source-image-codebook-custom-fields-v1";
 const rowStatusGroups = ["bbc", "guardian", "nytimes", "other"];
@@ -187,10 +185,11 @@ const codebookSections = [
   },
 ];
 
-const readonlyMetadataFields = [
+const mediaMetadataFields = [
   "media_article_title",
   "media_article_url",
   "media_publication_date",
+  "media_updated_date",
 ];
 
 const metadataFields = [
@@ -199,7 +198,7 @@ const metadataFields = [
   "source_organization",
   "source_figure_id",
   "media_outlet",
-  ...readonlyMetadataFields,
+  ...mediaMetadataFields,
   "overall_adaptation_intensity",
   "coding_confidence",
   "coder_notes",
@@ -228,10 +227,12 @@ const elements = {
   markSourceUnclearBtn: document.getElementById("markSourceUnclearBtn"),
   deleteRowBtn: document.getElementById("deleteRowBtn"),
   mediaRowProgress: document.getElementById("mediaRowProgress"),
-  mediaImageInput: document.getElementById("media_image"),
   sourceImageInput: document.getElementById("source_image"),
+  mediaArticleTitleInput: document.getElementById("media_article_title"),
   mediaArticleUrlInput: document.getElementById("media_article_url"),
   mediaArticleUrlLink: document.getElementById("mediaArticleUrlLink"),
+  mediaPublicationDateInput: document.getElementById("media_publication_date"),
+  mediaUpdatedDateInput: document.getElementById("media_updated_date"),
   saveRecordBtn: document.getElementById("saveRecordBtn"),
   saveNextBtn: document.getElementById("saveNextBtn"),
   exportCsvBtn: document.getElementById("exportCsvBtn"),
@@ -273,7 +274,6 @@ function init() {
   hydrateCustomFields();
   renderCodebook();
   attachFilePreview(elements.sourceImageInput, elements.sourcePreview, "source_image");
-  attachFilePreview(elements.mediaImageInput, elements.mediaPreview, "media_image", true);
   elements.coderNotesInput.addEventListener("input", () => autoResizeTextarea(elements.coderNotesInput));
 
   elements.csvInput.addEventListener("change", handleCsvImport);
@@ -290,6 +290,9 @@ function init() {
   elements.sourceOrganizationInput.addEventListener("input", updateRecordId);
   elements.sourceFigureInput.addEventListener("input", updateRecordId);
   elements.mediaOutletInput.addEventListener("input", updateRecordId);
+  elements.mediaPublicationDateInput.addEventListener("input", updateRecordId);
+  elements.mediaArticleUrlInput.addEventListener("input", () => syncMediaArticleLink(elements.mediaArticleUrlInput.value));
+  elements.mediaUpdatedDateInput.addEventListener("input", syncMediaUpdatedDateState);
   elements.coderSelect.addEventListener("change", persistCoder);
   elements.saveRecordBtn.addEventListener("click", saveCurrentRecord);
   elements.saveNextBtn.addEventListener("click", () => saveCurrentRecord({ moveNextAfterSave: true }));
@@ -712,6 +715,23 @@ function updateImportModeControls() {
   if (elements.mediaImageFileSelect) {
     elements.mediaImageFileSelect.disabled = csvMode || !importedMediaImageFileList.length;
   }
+  syncMediaMetadataEditability();
+}
+
+function syncMediaMetadataEditability() {
+  const hasCsvRow = importMode === "csv" && Boolean(currentMediaRow);
+  mediaMetadataFields.forEach((field) => {
+    const input = document.getElementById(field);
+    const label = input?.closest(".field");
+    if (!input) return;
+    input.readOnly = hasCsvRow;
+    label?.classList.toggle("readonly", hasCsvRow);
+  });
+  syncMediaUpdatedDateState();
+}
+
+function syncMediaUpdatedDateState() {
+  elements.mediaUpdatedDateInput.classList.toggle("empty-value", !elements.mediaUpdatedDateInput.value.trim());
 }
 
 function populateImportedMediaImageFileSelect() {
@@ -747,7 +767,6 @@ async function handleImportedMediaImageSelection() {
 
   currentFiles.media_image = file;
   currentFileData.media_image = null;
-  elements.mediaImageInput.value = "";
   renderPreview(elements.mediaPreview, file);
   try {
     currentFileData.media_image = await readFileAsDataUrl(file);
@@ -875,7 +894,6 @@ function clearCodingStateForMediaRowChange() {
   currentFiles.source_image = null;
   currentFileData.media_image = null;
   currentFileData.source_image = null;
-  elements.mediaImageInput.value = "";
   elements.sourceImageInput.value = "";
   if (elements.mediaImageFileSelect) {
     elements.mediaImageFileSelect.value = "";
@@ -898,9 +916,11 @@ function clearCodingStateForMediaRowChange() {
 function applyMediaRow(row) {
   if (!row) {
     document.getElementById("media_outlet").value = "";
-    readonlyMetadataFields.forEach((field) => {
+    mediaMetadataFields.forEach((field) => {
       document.getElementById(field).value = "";
     });
+    syncMediaArticleLink("");
+    syncMediaMetadataEditability();
     elements.mediaCsvSummary.textContent = importedRows.length
       ? "No media image row selected."
       : "No media image row selected.";
@@ -916,7 +936,9 @@ function applyMediaRow(row) {
   document.getElementById("media_article_title").value = row.article_title || "";
   document.getElementById("media_article_url").value = row.article_url || "";
   document.getElementById("media_publication_date").value = row.published_date || "";
+  document.getElementById("media_updated_date").value = row.updated_date || "";
   syncMediaArticleLink(row.article_url || "");
+  syncMediaMetadataEditability();
   const state = getRowState(row);
   const dispositionLine = state.disposition === "completed"
     ? `<strong>Status:</strong> completed by ${escapeHtml(state.completed_by || "unknown")}<br>`
@@ -1077,7 +1099,7 @@ function persistCoder() {
 }
 
 function restoreLastCoder() {
-  const lastCoder = localStorage.getItem(coderStorageKey) || localStorage.getItem(priorCoderStorageKey) || "";
+  const lastCoder = localStorage.getItem(coderStorageKey) || "";
   if (lastCoder) {
     elements.coderSelect.value = lastCoder;
   }
@@ -1113,14 +1135,14 @@ async function collectRecord() {
   record.source_image_data_url = currentFiles.source_image
     ? (currentFileData.source_image || await readFileAsDataUrl(currentFiles.source_image))
     : activeLoadedRecord?.source_image_data_url || "";
-  record.media_uploaded_data_url = currentFiles.media_image
+  record.media_selected_data_url = currentFiles.media_image
     ? (currentFileData.media_image || await readFileAsDataUrl(currentFiles.media_image))
-    : activeLoadedRecord?.media_uploaded_data_url || "";
+    : activeLoadedRecord?.media_selected_data_url || "";
   const importedMediaDataUrl = currentMediaRow ? await getImportedMediaImageDataUrl(currentMediaRow) : "";
-  const fetchedMediaDataUrl = !record.media_uploaded_data_url && !importedMediaDataUrl && record.media_csv_local_path
+  const fetchedMediaDataUrl = !record.media_selected_data_url && !importedMediaDataUrl && record.media_csv_local_path
     ? await fetchLocalImageDataUrl(record.media_csv_local_path)
     : "";
-  record.media_csv_data_url = record.media_uploaded_data_url
+  record.media_csv_data_url = record.media_selected_data_url
     ? ""
     : (importedMediaDataUrl || fetchedMediaDataUrl || previewImageToDataUrl(elements.mediaPreview) || activeLoadedRecord?.media_csv_data_url || "");
   record.coded_at = new Date().toISOString();
@@ -1142,12 +1164,12 @@ function validateRecord(record, { forExport = false } = {}) {
   if (!record.coder_name) requiredMessages.push("Select a coder name.");
   if (!record.source_organization) requiredMessages.push("Enter or select a source organization.");
   if (!record.source_figure_id) requiredMessages.push("Enter a source figure ID.");
-  if (!record.media_outlet) requiredMessages.push("Select a media image row so the media outlet is filled.");
-  if (!record.media_article_title) requiredMessages.push("The selected media row must include a media article title.");
-  if (!record.media_article_url) requiredMessages.push("The selected media row must include a media article URL.");
-  if (!record.media_publication_date) requiredMessages.push("The selected media row must include a publication date.");
+  if (!record.media_outlet) requiredMessages.push("Enter or select a media outlet.");
+  if (!record.media_article_title) requiredMessages.push("Enter a media article title.");
+  if (!record.media_article_url) requiredMessages.push("Enter a media article URL.");
+  if (!record.media_publication_date) requiredMessages.push("Enter a media publication date.");
   if (!record.source_image_filename) requiredMessages.push("Upload the original scientific image.");
-  if (!record.media_image_filename) requiredMessages.push("Select or upload the media adaptation image.");
+  if (!record.media_image_filename) requiredMessages.push("Select the media adaptation image.");
   if (!record.overall_adaptation_intensity) requiredMessages.push("Select overall adaptation intensity.");
   if (!record.coding_confidence) requiredMessages.push("Select coding confidence.");
 
@@ -1177,8 +1199,8 @@ function validateRecordImages(record) {
   if (!record.source_image_data_url) {
     requiredMessages.push("Upload and save the original scientific image.");
   }
-  if (!record.media_uploaded_data_url && !record.media_csv_data_url) {
-    requiredMessages.push("Import the media image files/folder or upload this media adaptation image, then save again.");
+  if (!record.media_selected_data_url && !record.media_csv_data_url) {
+    requiredMessages.push("Import the media image files/folder, select this media adaptation image, then save again.");
   }
   return requiredMessages;
 }
@@ -1188,6 +1210,7 @@ async function saveCurrentRecord({ moveNextAfterSave = false } = {}) {
   const record = await collectRecord();
   const validationErrors = validateRecord(record);
   if (validationErrors.length) {
+    alert(validationErrors.join("\n"));
     return;
   }
   const imageErrors = validateRecordImages(record);
@@ -1223,7 +1246,6 @@ function moveToNextAfterSave() {
   const preservedCoder = getFormValue("coder_name");
   currentFiles.media_image = null;
   currentFileData.media_image = null;
-  elements.mediaImageInput.value = "";
   if (elements.mediaImageFileSelect) {
     elements.mediaImageFileSelect.value = "";
   }
@@ -1302,7 +1324,7 @@ function resetForm(initialLoad = false) {
   document.getElementById("source_organization").value = "";
   document.getElementById("source_figure_id").value = "";
   document.getElementById("media_outlet").value = "";
-  readonlyMetadataFields.forEach((field) => {
+  mediaMetadataFields.forEach((field) => {
     document.getElementById(field).value = "";
   });
   document.getElementById("overall_adaptation_intensity").value = "";
@@ -1327,7 +1349,6 @@ function resetForm(initialLoad = false) {
     ? "No media image row selected."
     : "No media image row selected.";
 
-  elements.mediaImageInput.value = "";
   elements.sourceImageInput.value = "";
   if (elements.mediaImageFileSelect) {
     elements.mediaImageFileSelect.value = "";
@@ -1339,6 +1360,7 @@ function resetForm(initialLoad = false) {
   renderPreview(elements.mediaPreview, null);
   renderPreview(elements.sourcePreview, null);
   syncMediaArticleLink("");
+  syncMediaMetadataEditability();
 
   if (!initialLoad) {
     restoreLastCoder();
@@ -1369,11 +1391,13 @@ function loadRecordIntoForm(recordId) {
   document.getElementById("media_article_title").value = record.media_article_title || "";
   document.getElementById("media_article_url").value = record.media_article_url || "";
   document.getElementById("media_publication_date").value = record.media_publication_date || "";
+  document.getElementById("media_updated_date").value = record.media_updated_date || "";
   document.getElementById("overall_adaptation_intensity").value = record.overall_adaptation_intensity || "";
   document.getElementById("coding_confidence").value = record.coding_confidence || "";
   elements.coderNotesInput.value = record.coder_notes || "";
   autoResizeTextarea(elements.coderNotesInput);
   syncMediaArticleLink(record.media_article_url || "");
+  syncMediaMetadataEditability();
 
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
@@ -1390,7 +1414,6 @@ function loadRecordIntoForm(recordId) {
   currentFiles.source_image = null;
   currentFileData.media_image = null;
   currentFileData.source_image = null;
-  elements.mediaImageInput.value = "";
   elements.sourceImageInput.value = "";
 
   const matchedRow = importedRows.find((row) => {
@@ -1415,10 +1438,10 @@ function loadRecordIntoForm(recordId) {
     `;
     if (record.media_csv_local_path) {
       renderPreviewFromPath(elements.mediaPreview, record.media_csv_local_path, "No media image selected");
-    } else if (record.media_uploaded_data_url) {
+    } else if (record.media_selected_data_url) {
       renderPreviewFromDataUrl(
         elements.mediaPreview,
-        record.media_uploaded_data_url,
+        record.media_selected_data_url,
         record.media_image_filename || "Saved media image",
         "No media image selected"
       );
@@ -1455,11 +1478,7 @@ function persistRecords() {
 
 function loadRecords() {
   try {
-    const currentRecords = localStorage.getItem(recordsStorageKey);
-    if (currentRecords) {
-      return JSON.parse(currentRecords);
-    }
-    return JSON.parse(localStorage.getItem(priorRecordsStorageKey) || "[]");
+    return JSON.parse(localStorage.getItem(recordsStorageKey) || "[]");
   } catch {
     return [];
   }
@@ -1477,7 +1496,7 @@ async function exportCsv() {
   }
   const invalidImageRecord = savedRecords.find((record) => validateRecordImages(record).length > 0);
   if (invalidImageRecord) {
-    alert(`Cannot export because record "${invalidImageRecord.record_id}" does not contain exportable image data. Import the media image files/folder or upload the missing image, then save the pair again.`);
+    alert(`Cannot export because record "${invalidImageRecord.record_id}" does not contain exportable image data. Import the media image files/folder, select the missing image, then save the pair again.`);
     return;
   }
   const headers = [
@@ -1569,7 +1588,7 @@ function buildExportImageFilename(record, kind) {
     ? record.source_image_filename
     : record.media_image_filename || extractFilename(record.media_csv_local_path || "");
   if (!originalFilename) return "";
-  const extension = getImageExtension(originalFilename, kind === "source" ? record.source_image_data_url : record.media_uploaded_data_url);
+  const extension = getImageExtension(originalFilename, kind === "source" ? record.source_image_data_url : record.media_selected_data_url);
   return `${slugify(record.record_id || "record")}__${kind}${extension}`;
 }
 
@@ -1589,8 +1608,8 @@ async function readRecordImageBytes(record, kind) {
   if (kind === "source") {
     return record.source_image_data_url ? dataUrlToUint8Array(record.source_image_data_url) : null;
   }
-  if (record.media_uploaded_data_url) {
-    return dataUrlToUint8Array(record.media_uploaded_data_url);
+  if (record.media_selected_data_url) {
+    return dataUrlToUint8Array(record.media_selected_data_url);
   }
   if (record.media_csv_data_url) {
     return dataUrlToUint8Array(record.media_csv_data_url);

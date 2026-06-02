@@ -223,6 +223,18 @@ h1 {
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .compact-grid { margin-top: 10px; display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
+.media-select-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(280px, 1.1fr);
+  gap: 10px;
+  align-items: end;
+  margin-top: 10px;
+}
+
+.media-select-field {
+  min-width: 0;
+}
+
 /* ─── field ─── */
 .field { display: flex; flex-direction: column; gap: 4px; }
 
@@ -308,6 +320,12 @@ h1 {
   cursor: default;
 }
 
+.field input.empty-value {
+  background: var(--disabled-bg);
+  color: var(--disabled-text);
+  font-style: italic;
+}
+
 /* file input — same 34px height as select */
 .field input[type="file"] {
   padding: 0;
@@ -358,7 +376,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
+  min-width: 0;
 }
 
 .row-review-actions {
@@ -855,6 +873,7 @@ tbody tr:last-child td { border-bottom: none; }
   .custom-field-grid,
   .row-status-tools { grid-template-columns: 1fr; }
   .compact-grid { grid-template-columns: 1fr; }
+  .media-select-row { grid-template-columns: 1fr; }
   .image-pair-grid { grid-template-columns: 1fr; }
   .hero { padding: 14px 18px; }
   .workspace { padding: 0 16px 20px; overflow: auto; }
