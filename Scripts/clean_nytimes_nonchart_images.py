@@ -1,6 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 import shutil
+import re
+import sys
 
 import pandas as pd
 
@@ -10,12 +12,25 @@ from filter_nytimes_images import score_row, safe_to_csv, resolve_local_image_pa
 SCRIPT_DIR = Path(__file__).resolve().parent
 NYT_OUTPUT_DIR = SCRIPT_DIR / "output" / "nytimes"
 
-CANDIDATE_CSV = NYT_OUTPUT_DIR / "nytimes_images.csv"
-REJECTED_CSV = NYT_OUTPUT_DIR / "nytimes_images_chart_rejected.csv"
-ARTICLES_CSV = NYT_OUTPUT_DIR / "articles.csv"
-IMAGES_BEFORE_CSV = NYT_OUTPUT_DIR / "images_before_filter.csv"
-REPORT_CSV = NYT_OUTPUT_DIR / "nytimes_image_filter_report.csv"
-REMOVED_MANIFEST_CSV = NYT_OUTPUT_DIR / "nytimes_removed_nonchart_images.csv"
+def requested_output_suffix():
+    args = sys.argv[1:]
+    for index, arg in enumerate(args):
+        if re.fullmatch(r"20\d{2}", arg):
+            return f"_{arg}"
+        if arg.startswith("--year="):
+            return f"_{arg.split('=', 1)[1]}"
+        if arg == "--year" and index + 1 < len(args):
+            return f"_{args[index + 1]}"
+    return ""
+
+
+OUTPUT_SUFFIX = requested_output_suffix()
+CANDIDATE_CSV = NYT_OUTPUT_DIR / f"nytimes_images{OUTPUT_SUFFIX}.csv"
+REJECTED_CSV = NYT_OUTPUT_DIR / f"nytimes_images_chart_rejected{OUTPUT_SUFFIX}.csv"
+ARTICLES_CSV = NYT_OUTPUT_DIR / f"articles{OUTPUT_SUFFIX}.csv"
+IMAGES_BEFORE_CSV = NYT_OUTPUT_DIR / f"images_before_filter{OUTPUT_SUFFIX}.csv"
+REPORT_CSV = NYT_OUTPUT_DIR / f"nytimes_image_filter_report{OUTPUT_SUFFIX}.csv"
+REMOVED_MANIFEST_CSV = NYT_OUTPUT_DIR / f"nytimes_removed_nonchart_images{OUTPUT_SUFFIX}.csv"
 
 FILTER_COLUMNS = ["filter_score", "filter_decision", "filter_reasons"]
 IMAGE_KEY_COLUMNS = ["article_id", "image_url", "local_image_path"]

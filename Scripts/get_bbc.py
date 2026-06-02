@@ -1,5 +1,5 @@
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
 import time
 
 from bs4 import BeautifulSoup
@@ -11,11 +11,13 @@ from climate_visualization_utils import (
     build_review_priority_df,
     download_article_charts,
     extract_published_date_from_html,
+    extract_updated_date_from_html,
     ensure_output_dirs,
     get_active_windows,
     get_term_cap,
     make_session,
     match_window_for_date,
+    output_suffix_for_windows,
     parse_human_readable_date,
     sanitize_filename,
     save_outputs,
@@ -39,11 +41,12 @@ ARTICLE_ROOT_SELECTORS = [
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = SCRIPT_DIR / "output" / NEWSPAPER_SLUG
-ARTICLES_CSV, IMAGES_CSV, IMAGE_DIR = ensure_output_dirs(OUTPUT_DIR)
-ARTICLES_BEFORE_CSV = OUTPUT_DIR / "articles_before_filter.csv"
-IMAGES_BEFORE_CSV = OUTPUT_DIR / "images_before_filter.csv"
-IMAGES_DOWNLOADED_CSV = OUTPUT_DIR / "images_downloaded.csv"
-IMAGES_REVIEW_PRIORITY_CSV = OUTPUT_DIR / "images_review_priority.csv"
+ACTIVE_WINDOWS = get_active_windows()
+OUTPUT_SUFFIX = output_suffix_for_windows(ACTIVE_WINDOWS)
+ARTICLES_CSV, IMAGES_CSV, IMAGE_DIR = ensure_output_dirs(OUTPUT_DIR, OUTPUT_SUFFIX)
+ARTICLES_BEFORE_CSV = OUTPUT_DIR / f"articles_before_filter{OUTPUT_SUFFIX}.csv"
+IMAGES_BEFORE_CSV = OUTPUT_DIR / f"images_before_filter{OUTPUT_SUFFIX}.csv"
+COUNTS_TXT = OUTPUT_DIR / f"counts{OUTPUT_SUFFIX}.txt"
 
 
 def build_search_url(term, page):
@@ -51,7 +54,7 @@ def build_search_url(term, page):
 
 
 def is_bbc_article_url(url):
-    if not url.startswith("https://www.bbc.co.uk/"):
+    if not url.startswith(("https://www.bbc.co.uk/", "https://www.bbc.com/")):
         return False
     blocked_patterns = [
         "/news/topics/",
@@ -73,7 +76,7 @@ def extract_search_results(html):
     seen_urls = set()
 
     for anchor in main.select("a[href]"):
-        article_url = (anchor.get("href") or "").strip()
+        article_url = urljoin("https://www.bbc.co.uk", (anchor.get("href") or "").strip())
         title = " ".join(anchor.get_text(" ", strip=True).split())
         if not article_url or not title:
             continue
@@ -104,7 +107,9 @@ def main():
     seen_article_urls = set()
     seen_image_urls = set()
 
-    active_window_slugs = {window["slug"] for window in get_active_windows()}
+    active_window_slugs = {window["slug"] for window in ACTIVE_WINDOWS}
+
+    print(f"[INFO] Active BBC year window(s): {', '.join(sorted(active_window_slugs))}")
 
     for term in SEARCH_TERMS:
         term_cap = get_term_cap(term)
@@ -145,6 +150,7 @@ def main():
                 if not article_html:
                     continue
                 pub_date = extract_published_date_from_html(article_html) or item["published_date"]
+                updated_date = extract_updated_date_from_html(article_html, published_date=pub_date)
                 matched_window = match_window_for_date(pub_date)
                 if not matched_window or matched_window["slug"] not in active_window_slugs:
                     continue
@@ -159,8 +165,9 @@ def main():
                     article_id=article_id,
                     newspaper=NEWSPAPER,
                     newspaper_slug=NEWSPAPER_SLUG,
-                    ipcc_window=matched_window["slug"],
+                    year_window=matched_window["slug"],
                     published_date=pub_date,
+                    updated_date=updated_date,
                     search_term=term,
                     article_title=article_title,
                     image_dir=IMAGE_DIR,
@@ -176,12 +183,13 @@ def main():
                 base_article_row = {
                     "article_id": article_id,
                     "newspaper": NEWSPAPER,
-                    "ipcc_window": matched_window["slug"],
+                    "year_window": matched_window["slug"],
                     "search_term": term,
                     "title": article_title,
                     "article_url": article_url,
                     "section": "BBC search",
                     "published_date": pub_date,
+                    "updated_date": updated_date,
                 }
 
                 article_rows_before.append(
@@ -208,18 +216,23 @@ def main():
     after_images_df = sort_image_df(image_rows_after)
     review_priority_df = build_review_priority_df(image_rows_after)
     after_articles_df.to_csv(ARTICLES_CSV, index=False, encoding="utf-8-sig")
-    after_images_df.to_csv(IMAGES_CSV, index=False, encoding="utf-8-sig")
-    after_images_df.to_csv(IMAGES_DOWNLOADED_CSV, index=False, encoding="utf-8-sig")
-    review_priority_df.to_csv(IMAGES_REVIEW_PRIORITY_CSV, index=False, encoding="utf-8-sig")
+    review_priority_df.to_csv(IMAGES_CSV, index=False, encoding="utf-8-sig")
+
+    counts_text = (
+        f"All candidates before filter | articles: {len(before_articles_df)} | images: {len(before_images_df)}\n"
+        f"Downloaded static images after filter | articles: {len(after_articles_df)} | images: {len(after_images_df)}\n"
+        f"Final articles CSV: {ARTICLES_CSV}\n"
+        f"Final images CSV: {IMAGES_CSV}\n"
+    )
+    COUNTS_TXT.write_text(counts_text, encoding="utf-8")
 
     print(f"\n[COUNT] All candidates | articles: {len(before_articles_df)} | images: {len(before_images_df)}")
     print(f"[COUNT] Downloaded static images | articles: {len(after_articles_df)} | images: {len(after_images_df)}")
     print(f"[DONE] Saved BBC all-candidate articles to {ARTICLES_BEFORE_CSV}")
     print(f"[DONE] Saved BBC all-candidate images to {IMAGES_BEFORE_CSV}")
     print(f"[DONE] Saved BBC final articles to {ARTICLES_CSV}")
-    print(f"[DONE] Saved BBC compatibility image CSV to {IMAGES_CSV}")
-    print(f"[DONE] Saved BBC downloaded images to {IMAGES_DOWNLOADED_CSV}")
-    print(f"[DONE] Saved BBC review-priority images to {IMAGES_REVIEW_PRIORITY_CSV}")
+    print(f"[DONE] Saved BBC review-priority image CSV to {IMAGES_CSV}")
+    print(f"[DONE] Saved BBC counts to {COUNTS_TXT}")
 
 
 if __name__ == "__main__":

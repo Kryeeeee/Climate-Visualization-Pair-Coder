@@ -12,6 +12,7 @@ from climate_visualization_utils import (
     get_active_windows,
     make_session,
     nyt_multimedia_to_candidates,
+    output_suffix_for_windows,
     sanitize_filename,
     save_outputs,
     sort_article_df,
@@ -37,15 +38,17 @@ NYT_TERM_COOLDOWN_SECONDS = 45.0
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = SCRIPT_DIR / "output" / NEWSPAPER_SLUG
-ARTICLES_CSV, IMAGES_CSV, IMAGE_DIR = ensure_output_dirs(OUTPUT_DIR)
-ARTICLES_BEFORE_CSV = OUTPUT_DIR / "articles_before_filter.csv"
-IMAGES_BEFORE_CSV = OUTPUT_DIR / "images_before_filter.csv"
-IMAGES_DOWNLOADED_CSV = OUTPUT_DIR / "images_downloaded.csv"
-IMAGES_REVIEW_PRIORITY_CSV = OUTPUT_DIR / "images_review_priority.csv"
+ACTIVE_WINDOWS = get_active_windows()
+OUTPUT_SUFFIX = output_suffix_for_windows(ACTIVE_WINDOWS)
+ARTICLES_CSV, IMAGES_CSV, IMAGE_DIR = ensure_output_dirs(OUTPUT_DIR, OUTPUT_SUFFIX)
+ARTICLES_BEFORE_CSV = OUTPUT_DIR / f"articles_before_filter{OUTPUT_SUFFIX}.csv"
+IMAGES_BEFORE_CSV = OUTPUT_DIR / f"images_before_filter{OUTPUT_SUFFIX}.csv"
+COUNTS_TXT = OUTPUT_DIR / f"counts{OUTPUT_SUFFIX}.txt"
 
 
 def iter_date_slices(start_date, end_date, slice_days):
-    end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
+    # Internal windows are left-closed/right-open; NYT API dates are inclusive.
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d").date() - timedelta(days=1)
     start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
     current_end = end_dt
 
@@ -146,7 +149,9 @@ def main():
     seen_image_urls = set()
     stop_due_to_rate_limit = False
 
-    for window in get_active_windows():
+    print(f"[INFO] Active NYT year window(s): {', '.join(window['slug'] for window in ACTIVE_WINDOWS)}")
+
+    for window in ACTIVE_WINDOWS:
         if stop_due_to_rate_limit:
             break
         for term in SEARCH_TERMS:
@@ -215,17 +220,19 @@ def main():
                         raw_id = doc.get("_id", "")
                         article_id = sanitize_filename(raw_id.split("/")[-1] if "/" in raw_id else raw_id)
                         pub_date = (doc.get("pub_date") or "")[:10]
+                        updated_date = (doc.get("updated_date") or doc.get("updated") or "")[:10]
                         article_title = truncate_text((doc.get("headline") or {}).get("main", ""), 500)
 
                         base_article_row = {
                             "article_id": article_id,
                             "newspaper": NEWSPAPER,
-                            "ipcc_window": window["slug"],
+                            "year_window": window["slug"],
                             "search_term": term,
                             "title": article_title,
                             "article_url": article_url,
                             "section": truncate_text(doc.get("section_name"), 300),
                             "published_date": pub_date,
+                            "updated_date": updated_date,
                         }
 
                         raw_multimedia = doc.get("multimedia", [])
@@ -236,8 +243,9 @@ def main():
                             article_id=article_id,
                             newspaper=NEWSPAPER,
                             newspaper_slug=NEWSPAPER_SLUG,
-                            ipcc_window=window["slug"],
+                            year_window=window["slug"],
                             published_date=pub_date,
+                            updated_date=updated_date,
                             search_term=term,
                             article_title=article_title,
                             article_url=article_url,
@@ -280,18 +288,23 @@ def main():
     after_images_df = sort_image_df(image_rows_after)
     review_priority_df = build_review_priority_df(image_rows_after)
     after_articles_df.to_csv(ARTICLES_CSV, index=False, encoding="utf-8-sig")
-    after_images_df.to_csv(IMAGES_CSV, index=False, encoding="utf-8-sig")
-    after_images_df.to_csv(IMAGES_DOWNLOADED_CSV, index=False, encoding="utf-8-sig")
-    review_priority_df.to_csv(IMAGES_REVIEW_PRIORITY_CSV, index=False, encoding="utf-8-sig")
+    review_priority_df.to_csv(IMAGES_CSV, index=False, encoding="utf-8-sig")
+
+    counts_text = (
+        f"All candidates before filter | articles: {len(before_articles_df)} | images: {len(before_images_df)}\n"
+        f"Downloaded static images after filter | articles: {len(after_articles_df)} | images: {len(after_images_df)}\n"
+        f"Final articles CSV: {ARTICLES_CSV}\n"
+        f"Final images CSV: {IMAGES_CSV}\n"
+    )
+    COUNTS_TXT.write_text(counts_text, encoding="utf-8")
 
     print(f"\n[COUNT] All candidates | articles: {len(before_articles_df)} | images: {len(before_images_df)}")
     print(f"[COUNT] Downloaded static images | articles: {len(after_articles_df)} | images: {len(after_images_df)}")
     print(f"[DONE] Saved NYT all-candidate articles to {ARTICLES_BEFORE_CSV}")
     print(f"[DONE] Saved NYT all-candidate images to {IMAGES_BEFORE_CSV}")
     print(f"[DONE] Saved NYT final articles to {ARTICLES_CSV}")
-    print(f"[DONE] Saved NYT compatibility image CSV to {IMAGES_CSV}")
-    print(f"[DONE] Saved NYT downloaded images to {IMAGES_DOWNLOADED_CSV}")
-    print(f"[DONE] Saved NYT review-priority images to {IMAGES_REVIEW_PRIORITY_CSV}")
+    print(f"[DONE] Saved NYT review-priority image CSV to {IMAGES_CSV}")
+    print(f"[DONE] Saved NYT counts to {COUNTS_TXT}")
 
 
 if __name__ == "__main__":

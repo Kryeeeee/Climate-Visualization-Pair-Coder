@@ -2,6 +2,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 import re
+import sys
 
 from PIL import Image, ImageStat
 import pandas as pd
@@ -11,17 +12,31 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = SCRIPT_DIR.parent
 NYT_OUTPUT_DIR = SCRIPT_DIR / "output" / "nytimes"
 
+def requested_output_suffix():
+    args = sys.argv[1:]
+    for index, arg in enumerate(args):
+        if re.fullmatch(r"20\d{2}", arg):
+            return f"_{arg}"
+        if arg.startswith("--year="):
+            return f"_{arg.split('=', 1)[1]}"
+        if arg == "--year" and index + 1 < len(args):
+            return f"_{args[index + 1]}"
+    return ""
+
+
+OUTPUT_SUFFIX = requested_output_suffix()
 INPUT_CANDIDATES = [
+    NYT_OUTPUT_DIR / f"nytimes_images{OUTPUT_SUFFIX}.csv",
+    NYT_OUTPUT_DIR / f"images_before_filter{OUTPUT_SUFFIX}.csv",
     NYT_OUTPUT_DIR / "nytimes_images.csv",
-    NYT_OUTPUT_DIR / "images.csv",
-    NYT_OUTPUT_DIR / "images_after_filter.csv",
+    NYT_OUTPUT_DIR / "images_before_filter.csv",
 ]
 
-FILTERED_CSV = NYT_OUTPUT_DIR / "nytimes_images_chart_filtered.csv"
-REVIEW_CSV = NYT_OUTPUT_DIR / "nytimes_images_chart_review.csv"
-CANDIDATES_CSV = NYT_OUTPUT_DIR / "nytimes_images_chart_candidates.csv"
-REJECTED_CSV = NYT_OUTPUT_DIR / "nytimes_images_chart_rejected.csv"
-REPORT_CSV = NYT_OUTPUT_DIR / "nytimes_image_filter_report.csv"
+FILTERED_CSV = NYT_OUTPUT_DIR / f"nytimes_images_chart_filtered{OUTPUT_SUFFIX}.csv"
+REVIEW_CSV = NYT_OUTPUT_DIR / f"nytimes_images_chart_review{OUTPUT_SUFFIX}.csv"
+CANDIDATES_CSV = NYT_OUTPUT_DIR / f"nytimes_images_chart_candidates{OUTPUT_SUFFIX}.csv"
+REJECTED_CSV = NYT_OUTPUT_DIR / f"nytimes_images_chart_rejected{OUTPUT_SUFFIX}.csv"
+REPORT_CSV = NYT_OUTPUT_DIR / f"nytimes_image_filter_report{OUTPUT_SUFFIX}.csv"
 
 STRONG_CHART_TERMS = [
     "chart",

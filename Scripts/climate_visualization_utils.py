@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urljoin
 import mimetypes
 import re
+import sys
 import time
 
 from bs4 import BeautifulSoup
@@ -66,23 +68,25 @@ def get_term_cap(term):
 ARTICLE_COLUMNS = [
     "article_id",
     "newspaper",
-    "ipcc_window",
+    "year_window",
     "search_term",
     "title",
     "article_url",
     "section",
     "published_date",
+    "updated_date",
     "image_count",
 ]
 
 IMAGE_COLUMNS = [
     "article_id",
     "newspaper",
-    "ipcc_window",
+    "year_window",
     "search_term",
     "article_title",
     "article_url",
     "published_date",
+    "updated_date",
     "image_index",
     "image_url",
     "local_image_path",
@@ -139,21 +143,6 @@ NYT_MULTIMEDIA_CHART_TERMS = [
     "visualization",
     "visualisation",
     "tracker",
-]
-
-NYT_MULTIMEDIA_DATA_TERMS = [
-    "temperature",
-    "warming",
-    "emissions",
-    "carbon dioxide",
-    "co2",
-    "sea level",
-    "greenhouse gas",
-    "climate model",
-    "scenario",
-    "projection",
-    "record",
-    "source:",
 ]
 
 NYT_MULTIMEDIA_PHOTO_TERMS = [
@@ -365,12 +354,40 @@ def image_folder_name(newspaper_slug):
     return f"{newspaper_slug}_images"
 
 
-def ensure_output_dirs(output_dir):
+def requested_year_from_argv(argv=None):
+    args = list(sys.argv[1:] if argv is None else argv)
+    for index, arg in enumerate(args):
+        value = ""
+        if re.fullmatch(r"20\d{2}", arg):
+            value = arg
+        elif arg.startswith("--year="):
+            value = arg.split("=", 1)[1]
+        elif arg == "--year" and index + 1 < len(args):
+            value = args[index + 1]
+        if value:
+            if not any(window["slug"] == value for window in WINDOWS):
+                valid = ", ".join(window["slug"] for window in WINDOWS)
+                raise SystemExit(f"Unsupported year {value}. Valid years: {valid}")
+            return value
+    return ""
+
+
+def output_suffix_for_windows(windows):
+    return f"_{windows[0]['slug']}" if len(windows) == 1 else ""
+
+
+def inclusive_api_end_date(window):
+    """Convert the internal left-closed/right-open window into API-friendly inclusive end."""
+    end_date = datetime.strptime(window["end"], "%Y-%m-%d").date()
+    return (end_date - timedelta(days=1)).isoformat()
+
+
+def ensure_output_dirs(output_dir, output_suffix=""):
     newspaper_slug = output_dir.name
     image_dir = output_dir / image_folder_name(newspaper_slug)
     output_dir.mkdir(parents=True, exist_ok=True)
     image_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir / "articles.csv", output_dir / f"{newspaper_slug}_images.csv", image_dir
+    return output_dir / f"articles{output_suffix}.csv", output_dir / f"{newspaper_slug}_images{output_suffix}.csv", image_dir
 
 
 def make_empty_dataframe(columns):
@@ -378,6 +395,9 @@ def make_empty_dataframe(columns):
 
 
 def get_active_windows():
+    requested_year = requested_year_from_argv()
+    if requested_year:
+        return [window for window in WINDOWS if window["slug"] == requested_year]
     active = [window for window in WINDOWS if window["slug"] in ACTIVE_WINDOW_SLUGS]
     return active or WINDOWS
 
@@ -600,28 +620,6 @@ def extra_chart_like_images(root, article_url, known_urls):
     return candidates
 
 
-def score_chart_candidate(candidate):
-    combined = " ".join(
-        [
-            candidate.get("image_url", ""),
-            candidate.get("caption", ""),
-            candidate.get("credit", ""),
-            candidate.get("alt_text", ""),
-            candidate.get("context_text", ""),
-        ]
-    ).lower()
-
-    positive_hits = sorted({term for term in CHART_KEYWORDS if term in combined})
-    negative_hits = sorted({term for term in PHOTO_KEYWORDS if term in combined})
-    score = len(positive_hits)
-    return score, positive_hits, negative_hits
-
-
-def is_chart_candidate(candidate):
-    score, positive_hits, negative_hits = score_chart_candidate(candidate)
-    return bool(positive_hits), score, positive_hits, negative_hits
-
-
 def extract_image_candidates(html, article_url, selectors, session=None):
     soup = BeautifulSoup(html, "html.parser")
     roots = article_roots(soup, selectors)
@@ -646,74 +644,28 @@ def extract_image_candidates(html, article_url, selectors, session=None):
     return candidates
 
 
-def filter_chart_candidates(candidates):
-    kept = []
-    for candidate in candidates:
-        keep, _, _, _ = is_chart_candidate(candidate)
-        if keep:
-            kept.append(candidate)
-    return kept
-
-
-def text_for_candidate_matching(candidate):
-    return " ".join(
-        [
-            candidate.get("image_url", ""),
-            candidate.get("caption", ""),
-            candidate.get("credit", ""),
-            candidate.get("alt_text", ""),
-            candidate.get("context_text", ""),
-        ]
-    ).lower()
-
-
-def is_nyt_multimedia_chart_candidate(candidate):
-    combined = text_for_candidate_matching(candidate)
-    chart_hits = sorted({term for term in NYT_MULTIMEDIA_CHART_TERMS if term in combined})
-    data_hits = sorted({term for term in NYT_MULTIMEDIA_DATA_TERMS if term in combined})
-    photo_hits = sorted({term for term in NYT_MULTIMEDIA_PHOTO_TERMS if term in combined})
-    has_quantitative_signal = bool(
-        re.search(r"(%|°|\bppm\b|\b\d+(?:\.\d+)?\s?(?:c|f|percent|degrees?)\b)", combined)
-    )
-
-    if photo_hits and not chart_hits:
-        return False, chart_hits, data_hits, photo_hits
-    if chart_hits:
-        return True, chart_hits, data_hits, photo_hits
-    if data_hits and has_quantitative_signal and not photo_hits:
-        return True, chart_hits, data_hits, photo_hits
-    return False, chart_hits, data_hits, photo_hits
-
-
-def filter_nyt_multimedia_chart_candidates(candidates):
-    kept = []
-    for candidate in candidates:
-        keep, _, _, _ = is_nyt_multimedia_chart_candidate(candidate)
-        if keep:
-            kept.append(candidate)
-    return kept
-
-
 def candidate_to_image_row(
     candidate,
     article_id,
     newspaper,
-    ipcc_window,
+    year_window,
     search_term,
     article_title,
     article_url,
     published_date,
+    updated_date,
     image_index,
     local_image_path="",
 ):
     return {
         "article_id": article_id,
         "newspaper": newspaper,
-        "ipcc_window": ipcc_window,
+        "year_window": year_window,
         "search_term": search_term,
         "article_title": article_title,
         "article_url": article_url,
         "published_date": published_date,
+        "updated_date": updated_date,
         "image_index": image_index,
         "image_url": candidate.get("image_url", ""),
         "local_image_path": local_image_path,
@@ -732,24 +684,18 @@ def download_candidate_images(
     article_id,
     newspaper,
     newspaper_slug,
-    ipcc_window,
+    year_window,
     published_date,
+    updated_date,
     search_term,
     article_title,
     article_url,
     image_dir,
     seen_image_urls,
-    require_chart_match=False,
-    candidate_filter=None,
 ):
     before_rows = []
     after_rows = []
-    if candidate_filter:
-        downloadable_candidates = candidate_filter(candidates)
-    elif require_chart_match:
-        downloadable_candidates = filter_chart_candidates(candidates)
-    else:
-        downloadable_candidates = list(candidates)
+    downloadable_candidates = list(candidates)
 
     for index, candidate in enumerate(candidates, start=1):
         before_rows.append(
@@ -757,11 +703,12 @@ def download_candidate_images(
                 candidate=candidate,
                 article_id=article_id,
                 newspaper=newspaper,
-                ipcc_window=ipcc_window,
+                year_window=year_window,
                 search_term=search_term,
                 article_title=article_title,
                 article_url=article_url,
                 published_date=published_date,
+                updated_date=updated_date,
                 image_index=index,
             )
         )
@@ -772,7 +719,6 @@ def download_candidate_images(
             continue
         if image_url in seen_image_urls:
             continue
-        seen_image_urls.add(image_url)
 
         image_ext = infer_extension_from_url(image_url)
         safe_date = published_date or "undated"
@@ -780,16 +726,18 @@ def download_candidate_images(
         image_path = image_dir / image_name
 
         if image_path.exists() or download_image(session, image_url, image_path):
+            seen_image_urls.add(image_url)
             after_rows.append(
                 candidate_to_image_row(
                     candidate=candidate,
                     article_id=article_id,
                     newspaper=newspaper,
-                    ipcc_window=ipcc_window,
+                    year_window=year_window,
                     search_term=search_term,
                     article_title=article_title,
                     article_url=article_url,
                     published_date=published_date,
+                    updated_date=updated_date,
                     image_index=index,
                     local_image_path=make_codebook_relative_image_path(newspaper_slug, image_name),
                 )
@@ -885,12 +833,6 @@ def extract_published_date_from_html(html):
             if normalized:
                 return normalized
 
-    time_tag = soup.find("time")
-    if time_tag:
-        normalized = normalize_date(time_tag.get("datetime") or time_tag.get_text(" ", strip=True))
-        if normalized:
-            return normalized
-
     for script in soup.find_all("script", attrs={"type": "application/ld+json"}):
         script_text = script.get_text(" ", strip=True)
         match = re.search(r'"datePublished"\s*:\s*"([^"]+)"', script_text)
@@ -901,9 +843,74 @@ def extract_published_date_from_html(html):
 
     fallback_match = re.search(r'"datePublished"\s*:\s*"([^"]+)"', html)
     if fallback_match:
-        return normalize_date(fallback_match.group(1))
+        normalized = normalize_date(fallback_match.group(1))
+        if normalized:
+            return normalized
+
+    time_tag = soup.find("time")
+    if time_tag:
+        normalized = normalize_date(time_tag.get("datetime") or time_tag.get_text(" ", strip=True))
+        if normalized:
+            return normalized
 
     return ""
+
+
+def extract_updated_date_from_html(html, published_date=""):
+    if not html:
+        return ""
+
+    soup = BeautifulSoup(html, "html.parser")
+    candidates = []
+    meta_selectors = [
+        ("meta", {"property": "article:modified_time"}),
+        ("meta", {"name": "article:modified_time"}),
+        ("meta", {"property": "og:updated_time"}),
+        ("meta", {"name": "lastmod"}),
+        ("meta", {"name": "last-modified"}),
+        ("meta", {"itemprop": "dateModified"}),
+    ]
+    for tag_name, attrs in meta_selectors:
+        tag = soup.find(tag_name, attrs=attrs)
+        if tag:
+            value = tag.get("content") or tag.get("datetime")
+            normalized = normalize_date(value)
+            if normalized:
+                candidates.append(normalized)
+
+    for time_tag in soup.find_all("time"):
+        for value in [time_tag.get("datetime"), time_tag.get_text(" ", strip=True)]:
+            normalized = normalize_date(value) or parse_human_readable_date(value)
+            if normalized:
+                candidates.append(normalized)
+
+    for script in soup.find_all("script", attrs={"type": "application/ld+json"}):
+        script_text = script.get_text(" ", strip=True)
+        match = re.search(r'"dateModified"\s*:\s*"([^"]+)"', script_text)
+        if match:
+            normalized = normalize_date(match.group(1))
+            if normalized:
+                candidates.append(normalized)
+
+    fallback_match = re.search(r'"dateModified"\s*:\s*"([^"]+)"', html)
+    if fallback_match:
+        normalized = normalize_date(fallback_match.group(1))
+        if normalized:
+            candidates.append(normalized)
+
+    visible_match = re.search(r"\bUpdated\b.{0,120}", html, flags=re.IGNORECASE)
+    if visible_match:
+        normalized = parse_human_readable_date(visible_match.group(0))
+        if normalized:
+            candidates.append(normalized)
+
+    unique_candidates = sorted(set(candidates))
+    normalized_published = normalize_date(published_date)
+    if normalized_published:
+        later_candidates = [date for date in unique_candidates if date > normalized_published]
+        return later_candidates[-1] if later_candidates else ""
+
+    return unique_candidates[-1] if unique_candidates else ""
 
 
 def download_article_charts(
@@ -912,8 +919,9 @@ def download_article_charts(
     article_id,
     newspaper,
     newspaper_slug,
-    ipcc_window,
+    year_window,
     published_date,
+    updated_date,
     search_term,
     article_title,
     image_dir,
@@ -928,8 +936,6 @@ def download_article_charts(
     if not html:
         return {"before_rows": [], "after_rows": []}
 
-    before_rows = []
-    after_rows = []
     all_candidates = extract_image_candidates(html, article_url, selectors, session=session)
     return download_candidate_images(
         session=session,
@@ -937,8 +943,9 @@ def download_article_charts(
         article_id=article_id,
         newspaper=newspaper,
         newspaper_slug=newspaper_slug,
-        ipcc_window=ipcc_window,
+        year_window=year_window,
         published_date=published_date,
+        updated_date=updated_date,
         search_term=search_term,
         article_title=article_title,
         article_url=article_url,
