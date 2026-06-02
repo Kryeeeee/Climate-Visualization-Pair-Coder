@@ -23,6 +23,7 @@
   --accent-text: #536a2e;
   --accent-ring: rgba(143, 166, 95, 0.2);
   --accent-divider: rgba(143, 166, 95, 0.26);
+  --hero-bg: #f4f8ec;
   --heading-underline: var(--accent);
   --heading-underline-thickness: 3px;
   --heading-highlight: #f3f6eb;
@@ -88,7 +89,7 @@ body {
   gap: 24px;
   align-items: center;
   padding: 18px 28px;
-  background: var(--surface);
+  background: var(--hero-bg);
   border-bottom: 1px solid var(--line);
   border-top: none;
   box-shadow: none;
