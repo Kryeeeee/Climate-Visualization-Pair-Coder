@@ -23,10 +23,10 @@
   --accent-text: #536a2e;
   --accent-ring: rgba(143, 166, 95, 0.2);
   --accent-divider: rgba(143, 166, 95, 0.26);
-  --hero-bg: #f4f8ec;
+  --hero-bg: #eef1e8;
   --heading-underline: var(--accent);
   --heading-underline-thickness: 3px;
-  --heading-highlight: #f3f6eb;
+  --heading-highlight: #edf0e6;
   --field-divider-gap: 8px;
   --section-information-accent: #6f8fa6;
   --section-information-soft: #f6f9fb;

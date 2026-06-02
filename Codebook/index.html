@@ -52,20 +52,6 @@
     <section class="right-column">
       <section class="panel">
         <h2>Media adaptation</h2>
-        <div class="field">
-          <span>Import scraped media image CSV</span>
-            <input id="csvInput" type="file" accept=".csv,text/csv" aria-label="Import scraped media image CSV">
-        </div>
-        <div class="field">
-          <span>Import media image files/folder for export</span>
-            <input id="mediaImageFilesInput" type="file" accept="image/*" multiple webkitdirectory aria-label="Import media image files or folder for export">
-        </div>
-        <label class="field">
-          <span>Select imported media image file</span>
-          <select id="mediaImageFileSelect" disabled>
-            <option value="">No media image folder imported</option>
-          </select>
-        </label>
         <div class="row-status-tools">
             <label class="field">
               <span>Import status file</span>
@@ -73,6 +59,27 @@
             </label>
             <button id="exportRowStatusBtn" class="button subtle small" type="button">Export status file</button>
           </div>
+        <div class="field">
+          <span>Import media image CSV</span>
+            <input id="csvInput" type="file" accept=".csv,text/csv" aria-label="Import media image CSV">
+        </div>
+        <div class="field">
+          <span>Import media image folder for export</span>
+            <input id="mediaImageFilesInput" type="file" accept="image/*" multiple webkitdirectory aria-label="Import media image folder for export">
+        </div>
+        <div class="media-select-row">
+          <label class="field media-select-field">
+            <span>Manual media image selection</span>
+            <select id="mediaImageFileSelect" disabled>
+              <option value="">No media image folder imported</option>
+            </select>
+          </label>
+          <div class="nav-actions">
+            <button id="prevMediaFileBtn" class="button subtle small" type="button">Previous</button>
+            <div id="mediaFileProgress" class="progress-pill">0 / 0</div>
+            <button id="nextMediaFileBtn" class="button subtle small" type="button">Next</button>
+          </div>
+        </div>
         <div class="media-select-row">
           <label class="field media-select-field">
             <span>Select imported media image</span>

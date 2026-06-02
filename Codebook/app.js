@@ -217,6 +217,9 @@ const elements = {
   csvInput: document.getElementById("csvInput"),
   mediaImageFilesInput: document.getElementById("mediaImageFilesInput"),
   mediaImageFileSelect: document.getElementById("mediaImageFileSelect"),
+  prevMediaFileBtn: document.getElementById("prevMediaFileBtn"),
+  nextMediaFileBtn: document.getElementById("nextMediaFileBtn"),
+  mediaFileProgress: document.getElementById("mediaFileProgress"),
   rowStatusCsvInput: document.getElementById("rowStatusCsvInput"),
   exportRowStatusBtn: document.getElementById("exportRowStatusBtn"),
   mediaCsvSelect: document.getElementById("mediaCsvSelect"),
@@ -279,6 +282,8 @@ function init() {
   elements.csvInput.addEventListener("change", handleCsvImport);
   elements.mediaImageFilesInput.addEventListener("change", handleMediaImageFilesImport);
   elements.mediaImageFileSelect.addEventListener("change", handleImportedMediaImageSelection);
+  elements.prevMediaFileBtn.addEventListener("click", () => moveImportedMediaFileSelection(-1));
+  elements.nextMediaFileBtn.addEventListener("click", () => moveImportedMediaFileSelection(1));
   elements.rowStatusCsvInput.addEventListener("change", handleRowStatusImport);
   elements.exportRowStatusBtn.addEventListener("click", exportRowStatusCsv);
   elements.mediaCsvSelect.addEventListener("change", () => handleMediaRowSelection({ resetCoding: true }));
@@ -309,6 +314,7 @@ function init() {
   resetForm(true);
   renderSavedRecords();
   updateNavigationButtons();
+  updateImportedMediaFileNavigation();
 }
 
 function autoResizeTextarea(textarea) {
@@ -678,6 +684,8 @@ function handleCsvImport(event) {
       __rowKey: buildRowKey({ ...row, __sourceGroup: currentImportedSourceGroup }, index),
     }));
     populateMediaCsvSelect();
+    populateImportedMediaImageFileSelect();
+    updateImportModeControls();
   };
   reader.readAsText(file);
 }
@@ -708,18 +716,17 @@ function handleMediaImageFilesImport(event) {
 }
 
 function updateImportModeControls() {
-  const csvMode = importMode === "csv";
-  const folderMode = importMode === "folder";
-  elements.csvInput.disabled = folderMode;
-  elements.mediaImageFilesInput.disabled = csvMode;
+  elements.csvInput.disabled = false;
+  elements.mediaImageFilesInput.disabled = false;
   if (elements.mediaImageFileSelect) {
-    elements.mediaImageFileSelect.disabled = csvMode || !importedMediaImageFileList.length;
+    elements.mediaImageFileSelect.disabled = Boolean(importedRows.length) || !importedMediaImageFileList.length;
   }
+  updateImportedMediaFileNavigation();
   syncMediaMetadataEditability();
 }
 
 function syncMediaMetadataEditability() {
-  const hasCsvRow = importMode === "csv" && Boolean(currentMediaRow);
+  const hasCsvRow = Boolean(currentMediaRow);
   mediaMetadataFields.forEach((field) => {
     const input = document.getElementById(field);
     const label = input?.closest(".field");
@@ -739,20 +746,31 @@ function populateImportedMediaImageFileSelect() {
   if (!importedMediaImageFileList.length) {
     elements.mediaImageFileSelect.innerHTML = `<option value="">No media image folder imported</option>`;
     elements.mediaImageFileSelect.disabled = true;
+    updateImportedMediaFileNavigation();
     return;
   }
-  const options = [`<option value="">Select an imported media image</option>`];
+  if (importedRows.length) {
+    elements.mediaImageFileSelect.innerHTML = `<option value="">Folder imported; use CSV row selection below</option>`;
+    elements.mediaImageFileSelect.disabled = true;
+    updateImportedMediaFileNavigation();
+    return;
+  }
+  const options = [`<option value="">Select a media image from folder</option>`];
   importedMediaImageFileList.forEach((file, index) => {
     const label = file.webkitRelativePath || file.name;
     options.push(`<option value="${index}">${escapeHtml(label)}</option>`);
   });
   elements.mediaImageFileSelect.innerHTML = options.join("");
-  elements.mediaImageFileSelect.disabled = importMode === "csv";
+  elements.mediaImageFileSelect.disabled = false;
+  updateImportedMediaFileNavigation();
 }
 
 async function handleImportedMediaImageSelection() {
-  const selectedIndex = Number(elements.mediaImageFileSelect.value);
-  const file = Number.isInteger(selectedIndex) ? importedMediaImageFileList[selectedIndex] : null;
+  const selectedValue = elements.mediaImageFileSelect.value;
+  const selectedIndex = selectedValue === "" ? -1 : Number(selectedValue);
+  const file = Number.isInteger(selectedIndex) && selectedIndex >= 0
+    ? importedMediaImageFileList[selectedIndex]
+    : null;
   if (!file) {
     currentFiles.media_image = null;
     currentFileData.media_image = null;
@@ -762,9 +780,15 @@ async function handleImportedMediaImageSelection() {
     } else {
       renderPreview(elements.mediaPreview, null);
     }
+    updateImportedMediaFileNavigation();
     return;
   }
 
+  clearCodingStateForMediaRowChange();
+  elements.mediaImageFileSelect.value = String(selectedIndex);
+  currentMediaRow = null;
+  elements.mediaCsvSelect.value = "";
+  applyMediaRow(null);
   currentFiles.media_image = file;
   currentFileData.media_image = null;
   renderPreview(elements.mediaPreview, file);
@@ -774,6 +798,7 @@ async function handleImportedMediaImageSelection() {
     currentFileData.media_image = null;
   }
   tryAutoMatchMediaFile(file);
+  updateImportedMediaFileNavigation();
 }
 
 function detectSourceGroupFromFilename(filename) {
@@ -995,6 +1020,17 @@ function moveMediaSelection(direction) {
   handleMediaRowSelection({ resetCoding: true });
 }
 
+function moveImportedMediaFileSelection(direction) {
+  if (importedRows.length || !importedMediaImageFileList.length) return;
+  const selectedValue = elements.mediaImageFileSelect.value;
+  const currentIndex = selectedValue === "" ? -1 : Number(selectedValue);
+  const nextIndex = currentIndex === -1
+    ? (direction > 0 ? 0 : importedMediaImageFileList.length - 1)
+    : Math.max(0, Math.min(importedMediaImageFileList.length - 1, currentIndex + direction));
+  elements.mediaImageFileSelect.value = String(nextIndex);
+  handleImportedMediaImageSelection();
+}
+
 function updateNavigationButtons() {
   const rows = getNavigableRows();
   const hasRows = rows.length > 0;
@@ -1007,6 +1043,21 @@ function updateNavigationButtons() {
   elements.deleteRowBtn.disabled = !hasRows || currentIndex === -1;
   const displayIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
   elements.mediaRowProgress.textContent = `${displayIndex} / ${rows.length}`;
+}
+
+function updateImportedMediaFileNavigation() {
+  if (!elements.prevMediaFileBtn || !elements.nextMediaFileBtn || !elements.mediaFileProgress) return;
+  const hasManualFileMode = importedMediaImageFileList.length > 0 && !importedRows.length;
+  const selectedValue = elements.mediaImageFileSelect?.value || "";
+  const currentIndex = selectedValue === "" ? -1 : Number(selectedValue);
+  const validCurrentIndex = Number.isInteger(currentIndex)
+    && currentIndex >= 0
+    && currentIndex < importedMediaImageFileList.length;
+  elements.prevMediaFileBtn.disabled = !hasManualFileMode || !validCurrentIndex || currentIndex <= 0;
+  elements.nextMediaFileBtn.disabled = !hasManualFileMode
+    || (validCurrentIndex && currentIndex >= importedMediaImageFileList.length - 1);
+  const displayIndex = validCurrentIndex ? currentIndex + 1 : 0;
+  elements.mediaFileProgress.textContent = `${displayIndex} / ${importedMediaImageFileList.length}`;
 }
 
 function getFormValue(id) {
