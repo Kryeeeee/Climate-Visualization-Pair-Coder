@@ -1,5 +1,4 @@
 from collections import Counter
-from datetime import datetime
 from pathlib import Path
 import re
 import sys
@@ -260,12 +259,8 @@ def safe_to_csv(df, path):
     try:
         df.to_csv(path, index=False, encoding="utf-8-sig")
         return path
-    except PermissionError:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        fallback = path.with_name(f"{path.stem}_{timestamp}{path.suffix}")
-        df.to_csv(fallback, index=False, encoding="utf-8-sig")
-        print(f"[WARN] Could not write {path}. It may be open in another app. Wrote {fallback} instead.")
-        return fallback
+    except PermissionError as exc:
+        raise PermissionError(f"Could not write {path}. Close the file if it is open and run again.") from exc
 
 
 def main():

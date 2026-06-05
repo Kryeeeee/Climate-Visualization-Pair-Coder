@@ -1,0 +1,4 @@
+All candidates before filter | articles: 5 | images: 13
+Downloaded static images after filter | articles: 4 | images: 13
+Final articles CSV: D:\FR\IGD\IPCC internship\Scripts\output\bbc\articles_2013.csv
+Final images CSV: D:\FR\IGD\IPCC internship\Scripts\output\bbc\bbc_images_2013.csv

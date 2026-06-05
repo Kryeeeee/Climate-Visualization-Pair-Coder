@@ -841,9 +841,9 @@ def extract_published_date_from_html(html):
             if normalized:
                 return normalized
 
-    fallback_match = re.search(r'"datePublished"\s*:\s*"([^"]+)"', html)
-    if fallback_match:
-        normalized = normalize_date(fallback_match.group(1))
+    html_date_match = re.search(r'"datePublished"\s*:\s*"([^"]+)"', html)
+    if html_date_match:
+        normalized = normalize_date(html_date_match.group(1))
         if normalized:
             return normalized
 
@@ -892,9 +892,9 @@ def extract_updated_date_from_html(html, published_date=""):
             if normalized:
                 candidates.append(normalized)
 
-    fallback_match = re.search(r'"dateModified"\s*:\s*"([^"]+)"', html)
-    if fallback_match:
-        normalized = normalize_date(fallback_match.group(1))
+    html_date_match = re.search(r'"dateModified"\s*:\s*"([^"]+)"', html)
+    if html_date_match:
+        normalized = normalize_date(html_date_match.group(1))
         if normalized:
             candidates.append(normalized)
 
