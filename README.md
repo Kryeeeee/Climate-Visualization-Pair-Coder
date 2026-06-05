@@ -11,8 +11,8 @@
 5. Select a media image row. Media outlet, article title, URL, publication date, and updated date are filled from the CSV when available.
 6. Upload the original scientific figure.
 7. Fill in `Pair metadata` and complete all transformation coding fields.
-8. Click `Save coded pair` or `Save and next`.
-9. Click `Export` when finishing, then copy the newly completed entries into the existing `status.xls` and `climate_visualization_coding.csv` in [here](https://drive.google.com/drive/folders/1SXc_id4yTMz2i4aqLveLccZUIxrz92-O).
+8. Click `Save and next`.
+9. Click `Export` when finishing. The export includes `climate_visualization_coding.csv`, `status.xls`, `source_figures/`, and `media_adaptations/`; copy the newly completed entries into the existing shared `status.xls` and `climate_visualization_coding.csv` in [here](https://drive.google.com/drive/folders/1SXc_id4yTMz2i4aqLveLccZUIxrz92-O).
 10. The next coding session starts by importing the latest `status.xls`.
 
 ## Manual media images
@@ -27,7 +27,7 @@ If the media image is not from `<media>_images.csv`, do not import a media image
 
 ## Collaboration
 
-Use `Import status file` / `Export status file` to track progress. Share the same outlet CSV and matching image folder. Each coder should import the latest shared `status.xls` before coding, then merge newly completed entries back into the shared `status.xls` and `climate_visualization_coding.csv`.
+Use `Import status file` to load shared progress. Share the same outlet CSV and matching image folder. Each coder should import the latest shared `status.xls` before coding, then use `Export` and merge newly completed entries back into the shared `status.xls` and `climate_visualization_coding.csv`.
 
 - rows from `<media>_images.csv` go to `<media>`
 - manually uploaded media images go to `other`
