@@ -221,7 +221,6 @@ const elements = {
   nextMediaFileBtn: document.getElementById("nextMediaFileBtn"),
   mediaFileProgress: document.getElementById("mediaFileProgress"),
   rowStatusCsvInput: document.getElementById("rowStatusCsvInput"),
-  exportRowStatusBtn: document.getElementById("exportRowStatusBtn"),
   mediaCsvSelect: document.getElementById("mediaCsvSelect"),
   mediaCsvSummary: document.getElementById("mediaCsvSummary"),
   prevRowBtn: document.getElementById("prevRowBtn"),
@@ -236,7 +235,6 @@ const elements = {
   mediaArticleUrlLink: document.getElementById("mediaArticleUrlLink"),
   mediaPublicationDateInput: document.getElementById("media_publication_date"),
   mediaUpdatedDateInput: document.getElementById("media_updated_date"),
-  saveRecordBtn: document.getElementById("saveRecordBtn"),
   saveNextBtn: document.getElementById("saveNextBtn"),
   exportCsvBtn: document.getElementById("exportCsvBtn"),
   clearFormBtn: document.getElementById("clearFormBtn"),
@@ -269,7 +267,6 @@ let importedMediaImageFiles = new Map();
 let importedMediaImageDataUrls = new Map();
 let importedMediaImageFileList = [];
 let currentImportedSourceGroup = "other";
-let importMode = "";
 
 init();
 
@@ -285,7 +282,6 @@ function init() {
   elements.prevMediaFileBtn.addEventListener("click", () => moveImportedMediaFileSelection(-1));
   elements.nextMediaFileBtn.addEventListener("click", () => moveImportedMediaFileSelection(1));
   elements.rowStatusCsvInput.addEventListener("change", handleRowStatusImport);
-  elements.exportRowStatusBtn.addEventListener("click", exportRowStatusCsv);
   elements.mediaCsvSelect.addEventListener("change", () => handleMediaRowSelection({ resetCoding: true }));
   elements.prevRowBtn.addEventListener("click", () => moveMediaSelection(-1));
   elements.nextRowBtn.addEventListener("click", () => moveMediaSelection(1));
@@ -296,10 +292,11 @@ function init() {
   elements.sourceFigureInput.addEventListener("input", updateRecordId);
   elements.mediaOutletInput.addEventListener("input", updateRecordId);
   elements.mediaPublicationDateInput.addEventListener("input", updateRecordId);
+  elements.mediaPublicationDateInput.addEventListener("blur", () => normalizeDateInput(elements.mediaPublicationDateInput));
   elements.mediaArticleUrlInput.addEventListener("input", () => syncMediaArticleLink(elements.mediaArticleUrlInput.value));
   elements.mediaUpdatedDateInput.addEventListener("input", syncMediaUpdatedDateState);
+  elements.mediaUpdatedDateInput.addEventListener("blur", () => normalizeDateInput(elements.mediaUpdatedDateInput));
   elements.coderSelect.addEventListener("change", persistCoder);
-  elements.saveRecordBtn.addEventListener("click", saveCurrentRecord);
   elements.saveNextBtn.addEventListener("click", () => saveCurrentRecord({ moveNextAfterSave: true }));
   elements.exportCsvBtn.addEventListener("click", exportCsv);
   elements.clearFormBtn.addEventListener("click", resetForm);
@@ -330,33 +327,6 @@ function readFileAsDataUrl(file) {
     reader.onerror = () => reject(reader.error || new Error("Failed to read file."));
     reader.readAsDataURL(file);
   });
-}
-
-function readBlobAsDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result || "");
-    reader.onerror = () => reject(reader.error || new Error("Failed to read blob."));
-    reader.readAsDataURL(blob);
-  });
-}
-
-function previewImageToDataUrl(previewElement) {
-  const image = previewElement.querySelector("img");
-  if (!image || !image.complete || !image.naturalWidth || !image.naturalHeight) {
-    return "";
-  }
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    const context = canvas.getContext("2d");
-    if (!context) return "";
-    context.drawImage(image, 0, 0);
-    return canvas.toDataURL("image/png");
-  } catch {
-    return "";
-  }
 }
 
 function normalizeImageLookupKey(value) {
@@ -670,8 +640,7 @@ function renderPreviewFromDataUrl(target, dataUrl, caption, fallbackText) {
 function handleCsvImport(event) {
   const file = event.target.files[0];
   if (!file) return;
-  importMode = "csv";
-  updateImportModeControls();
+  updateImportControls();
   const reader = new FileReader();
   reader.onload = () => {
     const parsedRows = parseCsv(reader.result);
@@ -685,7 +654,7 @@ function handleCsvImport(event) {
     }));
     populateMediaCsvSelect();
     populateImportedMediaImageFileSelect();
-    updateImportModeControls();
+    updateImportControls();
   };
   reader.readAsText(file);
 }
@@ -694,8 +663,7 @@ function handleMediaImageFilesImport(event) {
   const files = Array.from(event.target.files || [])
     .filter(isImageFile)
     .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name));
-  importMode = files.length ? "folder" : "";
-  updateImportModeControls();
+  updateImportControls();
   importedMediaImageFileList = files;
   importedMediaImageFiles = new Map();
   importedMediaImageDataUrls = new Map();
@@ -715,7 +683,7 @@ function handleMediaImageFilesImport(event) {
   alert(`Imported ${files.length} media image file(s) for export.${suffix}`);
 }
 
-function updateImportModeControls() {
+function updateImportControls() {
   elements.csvInput.disabled = false;
   elements.mediaImageFilesInput.disabled = false;
   if (elements.mediaImageFileSelect) {
@@ -739,6 +707,35 @@ function syncMediaMetadataEditability() {
 
 function syncMediaUpdatedDateState() {
   elements.mediaUpdatedDateInput.classList.toggle("empty-value", !elements.mediaUpdatedDateInput.value.trim());
+}
+
+function formatDisplayDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (isoMatch) {
+    return `${isoMatch[2].padStart(2, "0")}-${isoMatch[3].padStart(2, "0")}-${isoMatch[1]}`;
+  }
+  const slashIsoMatch = raw.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (slashIsoMatch) {
+    return `${slashIsoMatch[2].padStart(2, "0")}-${slashIsoMatch[3].padStart(2, "0")}-${slashIsoMatch[1]}`;
+  }
+  const displayMatch = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (displayMatch) {
+    return `${displayMatch[1].padStart(2, "0")}-${displayMatch[2].padStart(2, "0")}-${displayMatch[3]}`;
+  }
+  return raw;
+}
+
+function normalizeDateInput(input) {
+  if (!input) return;
+  input.value = formatDisplayDate(input.value);
+  if (input === elements.mediaPublicationDateInput) {
+    updateRecordId();
+  }
+  if (input === elements.mediaUpdatedDateInput) {
+    syncMediaUpdatedDateState();
+  }
 }
 
 function populateImportedMediaImageFileSelect() {
@@ -960,8 +957,8 @@ function applyMediaRow(row) {
   document.getElementById("media_outlet").value = row.newspaper || row.media_outlet || "";
   document.getElementById("media_article_title").value = row.article_title || "";
   document.getElementById("media_article_url").value = row.article_url || "";
-  document.getElementById("media_publication_date").value = row.published_date || "";
-  document.getElementById("media_updated_date").value = row.updated_date || "";
+  document.getElementById("media_publication_date").value = formatDisplayDate(row.published_date);
+  document.getElementById("media_updated_date").value = formatDisplayDate(row.updated_date);
   syncMediaArticleLink(row.article_url || "");
   syncMediaMetadataEditability();
   const state = getRowState(row);
@@ -1037,7 +1034,7 @@ function updateNavigationButtons() {
   const currentIndex = rows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
   elements.prevRowBtn.disabled = !hasRows || currentIndex <= 0;
   elements.nextRowBtn.disabled = !hasRows || currentIndex === -1 || currentIndex >= rows.length - 1;
-  elements.saveNextBtn.disabled = !hasRows;
+  elements.saveNextBtn.disabled = false;
   elements.markNotImportantBtn.disabled = !hasRows || currentIndex === -1;
   elements.markSourceUnclearBtn.disabled = !hasRows || currentIndex === -1;
   elements.deleteRowBtn.disabled = !hasRows || currentIndex === -1;
@@ -1190,12 +1187,9 @@ async function collectRecord() {
     ? (currentFileData.media_image || await readFileAsDataUrl(currentFiles.media_image))
     : activeLoadedRecord?.media_selected_data_url || "";
   const importedMediaDataUrl = currentMediaRow ? await getImportedMediaImageDataUrl(currentMediaRow) : "";
-  const fetchedMediaDataUrl = !record.media_selected_data_url && !importedMediaDataUrl && record.media_csv_local_path
-    ? await fetchLocalImageDataUrl(record.media_csv_local_path)
-    : "";
   record.media_csv_data_url = record.media_selected_data_url
     ? ""
-    : (importedMediaDataUrl || fetchedMediaDataUrl || previewImageToDataUrl(elements.mediaPreview) || activeLoadedRecord?.media_csv_data_url || "");
+    : (importedMediaDataUrl || activeLoadedRecord?.media_csv_data_url || "");
   record.coded_at = new Date().toISOString();
 
   codebookSections.forEach((section) => {
@@ -1290,11 +1284,12 @@ async function saveCurrentRecord({ moveNextAfterSave = false } = {}) {
 }
 
 function moveToNextAfterSave() {
+  activeLoadedRecord = null;
   const rows = getNavigableRows();
   const currentIndex = rows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
   const canAdvance = currentIndex >= 0 && currentIndex < rows.length - 1;
-  const preservedSourceOrganization = getFormValue("source_organization");
   const preservedCoder = getFormValue("coder_name");
+  const preservedMediaOutlet = getFormValue("media_outlet");
   currentFiles.media_image = null;
   currentFileData.media_image = null;
   if (elements.mediaImageFileSelect) {
@@ -1323,8 +1318,9 @@ function moveToNextAfterSave() {
     });
   });
   syncAllFieldExtraInputs();
-  document.getElementById("source_organization").value = preservedSourceOrganization;
+  document.getElementById("source_organization").value = "";
   document.getElementById("coder_name").value = preservedCoder;
+  document.getElementById("media_outlet").value = preservedMediaOutlet;
   updateRecordId();
   alert(canAdvance ? "Coded pair saved. Moved to next media image." : "Coded pair saved. You are already on the last media image.");
 }
@@ -1441,8 +1437,8 @@ function loadRecordIntoForm(recordId) {
   document.getElementById("media_outlet").value = record.media_outlet || "";
   document.getElementById("media_article_title").value = record.media_article_title || "";
   document.getElementById("media_article_url").value = record.media_article_url || "";
-  document.getElementById("media_publication_date").value = record.media_publication_date || "";
-  document.getElementById("media_updated_date").value = record.media_updated_date || "";
+  document.getElementById("media_publication_date").value = formatDisplayDate(record.media_publication_date);
+  document.getElementById("media_updated_date").value = formatDisplayDate(record.media_updated_date);
   document.getElementById("overall_adaptation_intensity").value = record.overall_adaptation_intensity || "";
   document.getElementById("coding_confidence").value = record.coding_confidence || "";
   elements.coderNotesInput.value = record.coder_notes || "";
@@ -1582,6 +1578,10 @@ async function exportCsv() {
         path: "climate_visualization_coding.csv",
         data: textToUint8Array(csvContent),
       },
+      {
+        path: "status.xls",
+        data: textToUint8Array(buildRowStatusWorkbookXml(getRowStatusHeaders())),
+      },
     ];
     const missingImages = [];
 
@@ -1665,38 +1665,7 @@ async function readRecordImageBytes(record, kind) {
   if (record.media_csv_data_url) {
     return dataUrlToUint8Array(record.media_csv_data_url);
   }
-  if (!record.media_csv_local_path) {
-    return null;
-  }
-  return fetchLocalImageBytes(record.media_csv_local_path);
-}
-
-async function fetchLocalImageBytes(filePath) {
-  const normalizedPath = filePath.replace(/\\/g, "/");
-  const sourceUrl = normalizedPath.match(/^[A-Za-z]:\//)
-    ? `file://${encodeURI(`/${normalizedPath}`)}`
-    : encodeURI(normalizedPath);
-  try {
-    const response = await fetch(sourceUrl);
-    if (!response.ok) return null;
-    return new Uint8Array(await response.arrayBuffer());
-  } catch {
-    return null;
-  }
-}
-
-async function fetchLocalImageDataUrl(filePath) {
-  const normalizedPath = filePath.replace(/\\/g, "/");
-  const sourceUrl = normalizedPath.match(/^[A-Za-z]:\//)
-    ? `file://${encodeURI(`/${normalizedPath}`)}`
-    : encodeURI(normalizedPath);
-  try {
-    const response = await fetch(sourceUrl);
-    if (!response.ok) return "";
-    return readBlobAsDataUrl(await response.blob());
-  } catch {
-    return "";
-  }
+  return null;
 }
 
 function textToUint8Array(text) {
@@ -2056,9 +2025,8 @@ function syncMediaArticleLink(url) {
   elements.mediaArticleUrlLink.classList.toggle("disabled", !normalizedUrl);
 }
 
-function exportRowStatusCsv() {
-  const headers = ["row_key", "disposition", "source_unclear", "completed_by", "completed_at", "record_id", "updated_by", "updated_at"];
-  downloadBlob(buildRowStatusWorkbookXml(headers), "row_status.xls", "application/vnd.ms-excel");
+function getRowStatusHeaders() {
+  return ["row_key", "disposition", "source_unclear", "completed_by", "completed_at", "record_id", "updated_by", "updated_at"];
 }
 
 function handleRowStatusImport(event) {
@@ -2066,10 +2034,12 @@ function handleRowStatusImport(event) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    const filename = (file.name || "").toLowerCase();
-    const importedState = filename.endsWith(".csv")
-      ? parseLegacyRowStatusCsv(reader.result)
-      : parseRowStatusWorkbook(reader.result);
+    const importedState = parseRowStatusWorkbook(reader.result);
+    if (!importedState) {
+      alert("Could not import status file. Please use the exported status.xls file.");
+      event.target.value = "";
+      return;
+    }
     rowStatusGroups.forEach((group) => {
       rowState[group] = {
         ...(rowState[group] || {}),
@@ -2126,31 +2096,14 @@ function makeSpreadsheetCell(value) {
   return `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`;
 }
 
-function parseLegacyRowStatusCsv(csvText) {
-  const grouped = emptyGroupedRowState();
-  parseCsv(csvText).forEach((row) => {
-    const rowKey = (row.row_key || "").trim();
-    if (!rowKey) return;
-    const requestedGroup = (row.group || "").trim().toLowerCase();
-    const group = rowStatusGroups.includes(requestedGroup) ? requestedGroup : currentImportedSourceGroup;
-      grouped[group][rowKey] = {
-        disposition: (row.disposition || "").trim() || "active",
-        source_unclear: ["true", "1", "yes"].includes((row.source_unclear || "").trim().toLowerCase()),
-        completed_by: (row.completed_by || "").trim(),
-        completed_at: (row.completed_at || "").trim(),
-        record_id: (row.record_id || "").trim(),
-      updated_by: (row.updated_by || "").trim(),
-      updated_at: (row.updated_at || "").trim(),
-    };
-  });
-  return grouped;
-}
-
 function parseRowStatusWorkbook(xmlText) {
   const grouped = emptyGroupedRowState();
   const parser = new DOMParser();
   const xml = parser.parseFromString(xmlText, "application/xml");
   const worksheets = Array.from(xml.getElementsByTagNameNS("*", "Worksheet"));
+  if (!worksheets.length || xml.getElementsByTagName("parsererror").length) {
+    return null;
+  }
   worksheets.forEach((worksheet) => {
     const groupName = (
       worksheet.getAttribute("ss:Name")

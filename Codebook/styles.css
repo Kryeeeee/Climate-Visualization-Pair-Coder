@@ -19,6 +19,8 @@
   --disabled-file-text: #9a958e;
   --accent: #8fa65f;
   --accent-h: #788f4d;
+  --accent-deep: #4f6f2e;
+  --accent-deep-h: #425d27;
   --accent-soft: #eef3e4;
   --accent-text: #536a2e;
   --accent-ring: rgba(143, 166, 95, 0.2);
@@ -179,7 +181,7 @@ h1 {
 
 .row-status-tools {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-items: end;
   margin-top: 10px;
@@ -739,8 +741,8 @@ h1 {
 .button.primary { background: var(--accent); color: var(--on-dark); border-color: var(--accent); }
 .button.primary:hover { background: var(--accent-h); border-color: var(--accent-h); }
 
-.button.dark { background: var(--near-black); color: var(--on-dark); border-color: var(--near-black); }
-.button.dark:hover { background: var(--near-black-hover); border-color: var(--near-black-hover); }
+.button.dark { background: var(--accent-deep); color: var(--on-dark); border-color: var(--accent-deep); }
+.button.dark:hover { background: var(--accent-deep-h); border-color: var(--accent-deep-h); }
 
 .button.subtle { background: transparent; }
 .button.subtle:hover { background: var(--surface); }
@@ -769,6 +771,14 @@ h1 {
   padding: 4px 10px;
   font-size: 0.77rem;
   font-weight: 700;
+}
+
+.records-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 /* ─── table ─── */

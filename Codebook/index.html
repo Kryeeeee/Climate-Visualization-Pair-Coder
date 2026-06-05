@@ -16,11 +16,9 @@
       </p>
     </div>
     <div class="hero-actions">
-      <button id="saveRecordBtn" class="button primary">Save coded pair</button>
       <button id="saveNextBtn" class="button dark">Save and next</button>
       <button id="exportCsvBtn" class="button">Export</button>
       <button id="clearFormBtn" class="button subtle">Reset form</button>
-      <button id="clearRecordsBtn" class="button subtle danger">Delete saved records</button>
     </div>
   </header>
 
@@ -55,9 +53,8 @@
         <div class="row-status-tools">
             <label class="field">
               <span>Import status file</span>
-              <input id="rowStatusCsvInput" type="file" accept=".csv,text/csv,.xml,text/xml,application/xml,.xls,application/vnd.ms-excel" aria-label="Import status file">
+              <input id="rowStatusCsvInput" type="file" accept=".xls,.xml,application/vnd.ms-excel,application/xml,text/xml" aria-label="Import status file">
             </label>
-            <button id="exportRowStatusBtn" class="button subtle small" type="button">Export status file</button>
           </div>
         <div class="field">
           <span>Import media image CSV</span>
@@ -153,11 +150,11 @@
           </label>
           <label class="field">
             <span>Media publication date</span>
-            <input id="media_publication_date" type="text">
+            <input id="media_publication_date" type="text" placeholder="month-day-year">
           </label>
           <label class="field">
             <span>Media updated date</span>
-            <input id="media_updated_date" type="text">
+            <input id="media_updated_date" type="text" placeholder="month-day-year">
           </label>
         </div>
       </section>
@@ -204,7 +201,10 @@
             <h2>Saved records</h2>
             <p class="section-help">Saved in your browser until exported or cleared.</p>
           </div>
-          <div class="records-count"><span id="recordCount">0</span> saved</div>
+          <div class="records-actions">
+            <div class="records-count"><span id="recordCount">0</span> saved</div>
+            <button id="clearRecordsBtn" class="button subtle danger small" type="button">Delete saved records</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
