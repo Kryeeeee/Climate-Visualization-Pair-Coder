@@ -50,49 +50,25 @@
         data: textToUint8Array(buildRowStatusWorkbookXml(getRowStatusHeaders())),
       },
     ];
-    const missingImages = [];
-
     for (const record of savedRecords) {
       const sourceFilename = buildExportImageFilename(record, "source");
-      if (sourceFilename) {
-        const sourceBytes = await readRecordImageBytes(record, "source");
-        if (sourceBytes) {
-          zipEntries.push({ path: `source_figures/${sourceFilename}`, data: sourceBytes });
-        } else {
-          missingImages.push(`${record.record_id}: source image unavailable (${record.source_image_filename || "no filename"})`);
-        }
-      }
+      const sourceBytes = await readRecordImageBytes(record, "source");
+      zipEntries.push({ path: `source_figures/${sourceFilename}`, data: sourceBytes });
 
       const mediaFilename = buildExportImageFilename(record, "media");
-      if (mediaFilename) {
-        const mediaBytes = await readRecordImageBytes(record, "media");
-        if (mediaBytes) {
-          zipEntries.push({ path: `media_adaptations/${mediaFilename}`, data: mediaBytes });
-        } else {
-          missingImages.push(`${record.record_id}: media image unavailable (${record.media_image_filename || record.media_csv_local_path || "no filename"})`);
-        }
-      }
+      const mediaBytes = await readRecordImageBytes(record, "media");
+      zipEntries.push({ path: `media_adaptations/${mediaFilename}`, data: mediaBytes });
     }
 
-    if (missingImages.length) {
-      alert(`Export stopped because ${missingImages.length} image(s) are unavailable:\n${missingImages.join("\n")}`);
-      return;
-    }
-
-    zipEntries.push({
-      path: "missing_images.txt",
-      data: textToUint8Array(missingImages.length ? missingImages.join("\n") : "No missing images."),
-    });
     const zipBlob = buildZipBlob(zipEntries);
-    downloadBlob(zipBlob, "climate_visualization_export.zip", "application/zip");
+    downloadBlob(zipBlob, "climate_visualization_export.zip");
   } finally {
     elements.exportCsvBtn.disabled = false;
     elements.exportCsvBtn.textContent = "Export";
   }
 }
 
-function downloadBlob(content, filename, mimeType) {
-  const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -157,7 +133,7 @@ function buildZipBlob(entries) {
 
   entries.forEach((entry) => {
     const filenameBytes = textToUint8Array(entry.path.replace(/\\/g, "/"));
-    const data = entry.data instanceof Uint8Array ? entry.data : new Uint8Array(entry.data);
+    const data = entry.data;
     const crc = crc32(data);
     const { dosTime, dosDate } = getZipDateTime();
 

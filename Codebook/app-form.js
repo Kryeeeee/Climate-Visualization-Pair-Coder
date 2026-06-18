@@ -39,39 +39,6 @@ function getFieldValues(field) {
   return checkedInputs.map((input) => input.value);
 }
 
-function captureCodebookSelections() {
-  const selections = {};
-  codebookSections.forEach((section) => {
-    section.fields.forEach((field) => {
-      selections[field.id] = getFieldValue(field);
-      getFieldSupplementalInputIds(field).forEach((inputId) => {
-        selections[inputId] = getFormValue(inputId);
-      });
-      field.extraInputs?.forEach((extraInput) => {
-        selections[extraInput.id] = getFormValue(extraInput.id);
-      });
-    });
-  });
-  return selections;
-}
-
-function restoreCodebookSelections(selections) {
-  codebookSections.forEach((section) => {
-    section.fields.forEach((field) => {
-      restoreFieldSelection(field, selections[field.id] || "");
-      getFieldSupplementalInputIds(field).forEach((inputId) => {
-        const input = document.getElementById(inputId);
-        if (input) input.value = selections[inputId] || "";
-      });
-      field.extraInputs?.forEach((extraInput) => {
-        const input = document.getElementById(extraInput.id);
-        if (input) input.value = selections[extraInput.id] || "";
-      });
-    });
-  });
-  syncAllFieldExtraInputs();
-}
-
 function restoreFieldSelection(field, value) {
   const notApplicableInput = document.getElementById(`${field.id}__not_applicable`);
   if (notApplicableInput) {

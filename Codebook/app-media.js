@@ -2,7 +2,6 @@
 const ICON_CHART = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 17l0 -5"/><path d="M12 17l0 -3"/><path d="M15 17l0 -1"/></svg>`;
 
 function renderEmptyPreview(target, title, hint, icon) {
-  target.classList.add("muted");
   target.innerHTML = `<div class="preview-empty"><div class="preview-empty-icon">${icon}</div><div><p class="preview-empty-title">${title}</p><p class="preview-empty-hint">${hint}</p></div></div>`;
 }
 
@@ -33,7 +32,6 @@ function renderPreview(target, file) {
     renderEmptyPreview(target, isMedia ? "No image selected" : "No figure uploaded", isMedia ? "Select a CSV row to load automatically" : "Upload the original scientific figure", isMedia ? ICON_PHOTO : ICON_CHART);
     return;
   }
-  target.classList.remove("muted");
   const reader = new FileReader();
   reader.onload = () => {
     target.innerHTML = `
@@ -46,7 +44,6 @@ function renderPreview(target, file) {
 }
 
 function renderSavedPreviewNote(target, message) {
-  target.classList.remove("muted");
   target.innerHTML = `<div class="saved-preview-note">${escapeHtml(message)}</div>`;
 }
 
@@ -56,7 +53,6 @@ function renderPreviewFromSource(target, src, caption, emptyText) {
     renderEmptyPreview(target, emptyText, isMedia ? "Select a CSV row to load automatically" : "Upload the original scientific figure", isMedia ? ICON_PHOTO : ICON_CHART);
     return;
   }
-  target.classList.remove("muted");
   const safeCaption = escapeHtml(caption || "Preview image");
   target.innerHTML = `
     <button type="button" class="preview-trigger" data-preview-src="${src}" data-preview-caption="${safeCaption}">
@@ -67,8 +63,8 @@ function renderPreviewFromSource(target, src, caption, emptyText) {
 
 function renderPreviewFromPath(target, filePath, emptyText) {
   if (!filePath) {
-    target.classList.add("muted");
-    target.textContent = emptyText;
+    const isMedia = target === elements.mediaPreview;
+    renderEmptyPreview(target, emptyText, isMedia ? "Select a CSV row to load automatically" : "Upload the original scientific figure", isMedia ? ICON_PHOTO : ICON_CHART);
     return;
   }
   const normalizedPath = filePath.replace(/\\/g, "/");
@@ -76,10 +72,6 @@ function renderPreviewFromPath(target, filePath, emptyText) {
     ? `file://${encodeURI(`/${normalizedPath}`)}`
     : encodeURI(normalizedPath);
   renderPreviewFromSource(target, sourceUrl, extractFilename(filePath), emptyText);
-}
-
-function renderPreviewFromDataUrl(target, dataUrl, caption, emptyText) {
-  renderPreviewFromSource(target, dataUrl, caption, emptyText);
 }
 
 function handleCsvImport(event) {
@@ -131,9 +123,7 @@ function handleMediaImageFilesImport(event) {
 function updateImportControls() {
   elements.csvInput.disabled = false;
   elements.mediaImageFilesInput.disabled = false;
-  if (elements.mediaImageFileSelect) {
-    elements.mediaImageFileSelect.disabled = Boolean(importedRows.length) || !importedMediaImageFileList.length;
-  }
+  elements.mediaImageFileSelect.disabled = Boolean(importedRows.length) || !importedMediaImageFileList.length;
   updateImportedMediaFileNavigation();
   syncMediaMetadataEditability();
 }
@@ -142,10 +132,9 @@ function syncMediaMetadataEditability() {
   const hasCsvRow = Boolean(currentMediaRow);
   mediaMetadataFields.forEach((field) => {
     const input = document.getElementById(field);
-    const label = input?.closest(".field");
-    if (!input) return;
+    const label = input.closest(".field");
     input.readOnly = hasCsvRow;
-    label?.classList.toggle("readonly", hasCsvRow);
+    label.classList.toggle("readonly", hasCsvRow);
   });
   syncMediaUpdatedDateState();
 }
@@ -173,7 +162,6 @@ function formatDisplayDate(value) {
 }
 
 function normalizeDateInput(input) {
-  if (!input) return;
   input.value = formatDisplayDate(input.value);
   if (input === elements.mediaPublicationDateInput) {
     updateRecordId();
@@ -184,7 +172,6 @@ function normalizeDateInput(input) {
 }
 
 function populateImportedMediaImageFileSelect() {
-  if (!elements.mediaImageFileSelect) return;
   if (!importedMediaImageFileList.length) {
     elements.mediaImageFileSelect.innerHTML = `<option value="">No media image folder imported</option>`;
     elements.mediaImageFileSelect.disabled = true;
@@ -210,9 +197,7 @@ function populateImportedMediaImageFileSelect() {
 async function handleImportedMediaImageSelection() {
   const selectedValue = elements.mediaImageFileSelect.value;
   const selectedIndex = selectedValue === "" ? -1 : Number(selectedValue);
-  const file = Number.isInteger(selectedIndex) && selectedIndex >= 0
-    ? importedMediaImageFileList[selectedIndex]
-    : null;
+  const file = selectedIndex >= 0 ? importedMediaImageFileList[selectedIndex] : null;
   if (!file) {
     currentFiles.media_image = null;
     currentFileData.media_image = null;
@@ -297,15 +282,17 @@ function parseCsv(csvText) {
   }
 
   if (!rows.length) return [];
-  const headers = rows[0].map((value) => value.trim());
+  const headers = rows[0].map((value, index) => {
+    const trimmed = value.trim();
+    return index === 0 ? trimmed.replace(/^\uFEFF/, "") : trimmed;
+  });
   return rows.slice(1)
     .filter((values) => values.some((value) => value.trim() !== ""))
-    .map((values, index) => {
-      const record = { __rowIndex: String(index) };
+    .map((values) => {
+      const record = {};
       headers.forEach((header, headerIndex) => {
         record[header] = (values[headerIndex] || "").trim();
       });
-      record.__rowKey = buildRowKey(record, index);
       return record;
     });
 }
@@ -369,19 +356,13 @@ function clearCodingStateForMediaRowChange() {
   currentFileData.source_image = null;
   elements.sourceImageInput.value = "";
   syncFilePickerName(elements.sourceImageInput);
-  if (elements.mediaImageFileSelect) {
-    elements.mediaImageFileSelect.value = "";
-  }
+  elements.mediaImageFileSelect.value = "";
   renderPreview(elements.mediaPreview, null);
   renderPreview(elements.sourcePreview, null);
 
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
       restoreFieldSelection(field, "");
-      getFieldSupplementalInputIds(field).forEach((inputId) => {
-        const input = document.getElementById(inputId);
-        if (input) input.value = "";
-      });
       field.extraInputs?.forEach((extraInput) => {
         const input = document.getElementById(extraInput.id);
         if (input) {
@@ -419,14 +400,6 @@ function applyMediaRow(row) {
   syncMediaArticleLink(row.article_url || "");
   syncMediaMetadataEditability();
   const state = getRowState(row);
-  const dispositionLine = state.disposition === "completed"
-    ? `<strong>Status:</strong> completed by ${escapeHtml(state.completed_by || "unknown")}<br>`
-    : state.disposition === "not_important"
-      ? `<strong>Status:</strong> marked not important<br>`
-      : state.disposition === "deleted"
-        ? `<strong>Status:</strong> deleted from queue<br>`
-        : "";
-  const sourceUnclearLine = state.source_unclear ? "<strong>Source note:</strong> marked source unclear<br>" : "";
   const outlet = escapeHtml(row.newspaper || row.media_outlet || "");
   const date = escapeHtml(formatDisplayDate(row.published_date));
   const filename = escapeHtml(extractFilename(row.local_image_path || ""));
@@ -451,7 +424,7 @@ async function hydrateMediaPreviewFromImportedFile(row) {
   if (!row || currentFiles.media_image) return;
   const dataUrl = await getImportedMediaImageDataUrl(row);
   if (!dataUrl || currentMediaRow !== row) return;
-  renderPreviewFromDataUrl(
+  renderPreviewFromSource(
     elements.mediaPreview,
     dataUrl,
     extractFilename(row.local_image_path || "") || "Media adaptation image",
@@ -523,9 +496,8 @@ function updateNavigationButtons() {
 }
 
 function updateImportedMediaFileNavigation() {
-  if (!elements.prevMediaFileBtn || !elements.nextMediaFileBtn || !elements.mediaFileProgress) return;
   const hasManualFileMode = importedMediaImageFileList.length > 0 && !importedRows.length;
-  const selectedValue = elements.mediaImageFileSelect?.value || "";
+  const selectedValue = elements.mediaImageFileSelect.value || "";
   const currentIndex = selectedValue === "" ? -1 : Number(selectedValue);
   const validCurrentIndex = Number.isInteger(currentIndex)
     && currentIndex >= 0

@@ -60,7 +60,7 @@ async function getImportedMediaImageDataUrl(rowOrPath) {
   return dataUrl;
 }
 
-function renderCodebook(preservedSelections = null) {
+function renderCodebook() {
   elements.sectionRoot.innerHTML = "";
   codebookSections.forEach((section) => {
     const fragment = elements.optionGroupTemplate.content.cloneNode(true);
@@ -73,10 +73,8 @@ function renderCodebook(preservedSelections = null) {
     section.fields.forEach((field) => {
       const fieldFragment = elements.fieldCardTemplate.content.cloneNode(true);
       const fieldCard = fieldFragment.querySelector(".field-card");
-      const fieldHead = fieldFragment.querySelector(".field-card-head");
-      const deleteButton = fieldFragment.querySelector(".field-card-delete");
       const labelNode = fieldFragment.querySelector(".field-card-label");
-      labelNode.textContent = field.custom ? `* ${field.label}` : field.label;
+      labelNode.textContent = field.label;
       const fieldCopy = fieldFragment.querySelector(".field-card-copy");
       const helpNode = fieldFragment.querySelector(".field-card-help");
       const titleRow = document.createElement("div");
@@ -87,9 +85,6 @@ function renderCodebook(preservedSelections = null) {
       helpNode.classList.toggle("hidden", !field.help);
       const chipGroup = fieldFragment.querySelector(".chip-group");
       const hasNotApplicable = field.options?.includes("not_applicable");
-      if (hasNotApplicable) {
-        fieldCard.classList.add("has-not-applicable");
-      }
       if (hasNotApplicable) {
         titleRow.appendChild(makeNotApplicableControl(field, () => {
           handleNotApplicableChange(field);
@@ -127,9 +122,6 @@ function renderCodebook(preservedSelections = null) {
     elements.sectionRoot.appendChild(fragment);
   });
 
-  if (preservedSelections) {
-    restoreCodebookSelections(preservedSelections);
-  }
 }
 
 function makeChip(field, optionValue, optionLabel) {
@@ -309,10 +301,6 @@ function getCodebookOutputFields() {
 
 function getFieldOutputInputIds(field) {
   return (field.extraInputs || []).map((extraInput) => extraInput.id);
-}
-
-function getFieldSupplementalInputIds(field) {
-  return [];
 }
 
 function prettifyOption(value) {

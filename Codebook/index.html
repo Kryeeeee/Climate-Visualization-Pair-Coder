@@ -88,9 +88,9 @@
             </select>
           </label>
           <div class="nav-actions">
-            <button id="prevMediaFileBtn" class="button subtle small nav-icon-btn" type="button" aria-label="Previous media image">←</button>
+            <button id="prevMediaFileBtn" class="button subtle small" type="button" aria-label="Previous media image">&larr;</button>
             <div id="mediaFileProgress" class="progress-pill">0 / 0</div>
-            <button id="nextMediaFileBtn" class="button subtle small nav-icon-btn" type="button" aria-label="Next media image">→</button>
+            <button id="nextMediaFileBtn" class="button subtle small" type="button" aria-label="Next media image">&rarr;</button>
           </div>
         </div>
         <div class="media-select-row">
@@ -101,9 +101,9 @@
             </select>
           </label>
           <div class="nav-actions">
-            <button id="prevRowBtn" class="button subtle small nav-icon-btn" type="button" aria-label="Previous imported media image">←</button>
+            <button id="prevRowBtn" class="button subtle small" type="button" aria-label="Previous imported media image">&larr;</button>
             <div id="mediaRowProgress" class="progress-pill">0 / 0</div>
-            <button id="nextRowBtn" class="button subtle small nav-icon-btn" type="button" aria-label="Next imported media image">→</button>
+            <button id="nextRowBtn" class="button subtle small" type="button" aria-label="Next imported media image">&rarr;</button>
           </div>
         </div>
         <div class="row-review-actions">
@@ -115,7 +115,7 @@
       </section>
 
       <section class="panel">
-        <h2>Pair metadata <span class="step-num">①</span></h2>
+        <h2>Pair metadata <span class="step-num">1</span></h2>
         <div class="grid two">
           <div class="group-divider">Source figure</div>
           <label class="field">
@@ -184,12 +184,12 @@
       </section>
 
       <section class="panel">
-        <h2>Transformation coding <span class="step-num">②</span></h2>
+        <h2>Transformation coding <span class="step-num">2</span></h2>
         <div id="codebookSections" class="sections"></div>
       </section>
 
       <section class="panel">
-        <h2>Notes <span class="step-num">③</span></h2>
+        <h2>Notes <span class="step-num">3</span></h2>
         <div class="notes-grid">
           <div class="field">
             <span>Coding confidence</span>
@@ -267,14 +267,13 @@
           <label class="field-card-label"></label>
           <p class="field-card-help"></p>
         </div>
-        <button type="button" class="field-card-delete button subtle danger small hidden">Delete item</button>
       </div>
       <div class="chip-group"></div>
     </div>
   </template>
 
   <div id="imageLightbox" class="lightbox hidden" aria-hidden="true">
-    <button id="lightboxCloseBtn" class="lightbox-close" type="button" aria-label="Close image preview">×</button>
+    <button id="lightboxCloseBtn" class="lightbox-close" type="button" aria-label="Close image preview">&times;</button>
     <div class="lightbox-stage">
       <img id="lightboxImage" alt="">
       <p id="lightboxCaption" class="lightbox-caption"></p>

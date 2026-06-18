@@ -123,7 +123,7 @@ function setCurrentRowDisposition(disposition) {
 function clearCompletedRowStates() {
   rowStatusGroups.forEach((group) => {
     Object.keys(rowState[group] || {}).forEach((rowKey) => {
-      if ((rowState[group][rowKey] || {}).disposition === "completed") {
+      if (rowState[group][rowKey].disposition === "completed") {
         delete rowState[group][rowKey];
       }
     });

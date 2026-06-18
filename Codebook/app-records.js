@@ -40,9 +40,6 @@
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
       record[field.id] = getFieldValue(field);
-      getFieldSupplementalInputIds(field).forEach((inputId) => {
-        record[inputId] = getFormValue(inputId);
-      });
       field.extraInputs?.forEach((extraInput) => {
         record[extraInput.id] = getFormValue(extraInput.id);
       });
@@ -133,12 +130,9 @@ function moveToNextAfterSave() {
   const currentIndex = rows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
   const canAdvance = currentIndex >= 0 && currentIndex < rows.length - 1;
   const preservedCoder = getFormValue("coder_name");
-  const preservedMediaOutlet = getFormValue("media_outlet");
   currentFiles.media_image = null;
   currentFileData.media_image = null;
-  if (elements.mediaImageFileSelect) {
-    elements.mediaImageFileSelect.value = "";
-  }
+  elements.mediaImageFileSelect.value = "";
   if (canAdvance) {
     elements.mediaCsvSelect.value = rows[currentIndex + 1].__rowIndex;
     handleMediaRowSelection();
@@ -156,10 +150,6 @@ function moveToNextAfterSave() {
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
       restoreFieldSelection(field, "");
-      getFieldSupplementalInputIds(field).forEach((inputId) => {
-        const input = document.getElementById(inputId);
-        if (input) input.value = "";
-      });
       field.extraInputs?.forEach((extraInput) => {
         const input = document.getElementById(extraInput.id);
         if (input) {
@@ -172,7 +162,6 @@ function moveToNextAfterSave() {
   syncAllFieldExtraInputs();
   document.getElementById("source_organization").value = "";
   document.getElementById("coder_name").value = preservedCoder;
-  document.getElementById("media_outlet").value = preservedMediaOutlet;
   updateRecordId();
   alert(canAdvance ? "Coded pair saved. Moved to next media image." : "Coded pair saved. You are already on the last media image.");
 }
@@ -195,7 +184,7 @@ function renderSavedRecords() {
       <td>${escapeHtml(record.source_figure_id)}</td>
       <td>${escapeHtml(record.media_image_filename || "")}</td>
       <td>
-        <button class="table-action table-load-action" data-record-id="${record.record_id}" data-action="load">Load / Edit</button>
+        <button class="table-action" data-record-id="${record.record_id}" data-action="load">Load / Edit</button>
         <button class="table-action" data-record-id="${record.record_id}" data-action="delete">Delete</button>
       </td>
     `;
@@ -234,10 +223,6 @@ function resetForm(initialLoad = false) {
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
       restoreFieldSelection(field, "");
-      getFieldSupplementalInputIds(field).forEach((inputId) => {
-        const input = document.getElementById(inputId);
-        if (input) input.value = "";
-      });
       field.extraInputs?.forEach((extraInput) => {
         const input = document.getElementById(extraInput.id);
         if (input) {
@@ -251,15 +236,11 @@ function resetForm(initialLoad = false) {
 
   currentMediaRow = null;
   elements.mediaCsvSelect.value = "";
-  elements.mediaCsvSummary.textContent = importedRows.length
-    ? "No media image row selected."
-    : "No media image row selected.";
+  elements.mediaCsvSummary.textContent = "No media image row selected.";
 
   elements.sourceImageInput.value = "";
   syncFilePickerName(elements.sourceImageInput);
-  if (elements.mediaImageFileSelect) {
-    elements.mediaImageFileSelect.value = "";
-  }
+  elements.mediaImageFileSelect.value = "";
   currentFiles.media_image = null;
   currentFiles.source_image = null;
   currentFileData.media_image = null;
@@ -304,15 +285,10 @@ function loadRecordIntoForm(recordId) {
   elements.coderNotesInput.value = record.coder_notes || "";
   autoResizeTextarea(elements.coderNotesInput);
   syncMediaArticleLink(record.media_article_url || "");
-  syncMediaMetadataEditability();
 
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
       restoreFieldSelection(field, record[field.id] || "");
-      getFieldSupplementalInputIds(field).forEach((inputId) => {
-        const input = document.getElementById(inputId);
-        if (input) input.value = record[inputId] || "";
-      });
       field.extraInputs?.forEach((extraInput) => {
         const input = document.getElementById(extraInput.id);
         if (input) {
@@ -343,8 +319,18 @@ function loadRecordIntoForm(recordId) {
     elements.mediaCsvSelect.value = matchedRow.__rowIndex;
     currentMediaRow = matchedRow;
     applyMediaRow(matchedRow);
+    const savedMediaDataUrl = record.media_selected_data_url || record.media_csv_data_url;
+    if (savedMediaDataUrl) {
+      renderPreviewFromSource(
+        elements.mediaPreview,
+        savedMediaDataUrl,
+        record.media_image_filename || "Saved media image",
+        "No media image selected"
+      );
+    }
   } else {
     currentMediaRow = null;
+    syncMediaMetadataEditability();
     elements.mediaCsvSelect.value = "";
     elements.mediaCsvSummary.innerHTML = `
       <strong>Loaded saved record:</strong> ${escapeHtml(record.record_id)}<br>
@@ -354,7 +340,7 @@ function loadRecordIntoForm(recordId) {
     if (record.media_csv_local_path) {
       renderPreviewFromPath(elements.mediaPreview, record.media_csv_local_path, "No media image selected");
     } else if (record.media_selected_data_url) {
-      renderPreviewFromDataUrl(
+      renderPreviewFromSource(
         elements.mediaPreview,
         record.media_selected_data_url,
         record.media_image_filename || "Saved media image",
@@ -368,7 +354,7 @@ function loadRecordIntoForm(recordId) {
   }
 
   if (record.source_image_data_url) {
-    renderPreviewFromDataUrl(
+    renderPreviewFromSource(
       elements.sourcePreview,
       record.source_image_data_url,
       record.source_image_filename || "Saved original scientific image",
