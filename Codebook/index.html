@@ -11,7 +11,7 @@
     <div>
       <h1>Climate Visualization Pair Coder</h1>
       <p class="subtitle">
-        Import a media-image CSV or media image folder, select a media adaptation image, pair it with an original scientific figure,
+        Import a media-image CSV and media image folder, select a media adaptation image, pair it with an original scientific figure,
         and code the transformation.
       </p>
     </div>
@@ -37,8 +37,10 @@
           <section class="image-card">
             <div class="image-card-head">
               <h3>Original scientific figure</h3>
-              <label class="field inline-upload">
+              <label class="file-picker inline-upload">
                 <input id="source_image" type="file" accept="image/*" aria-label="Upload original scientific image">
+                <span class="file-picker-button">Choose file</span>
+                <span class="file-picker-name">No file selected</span>
               </label>
             </div>
             <div id="sourcePreview" class="preview">No original scientific image selected</div>
@@ -48,22 +50,36 @@
     </section>
 
     <section class="right-column">
-      <section class="panel">
+      <section class="panel media-import-panel">
         <h2>Media adaptation</h2>
+        <div class="group-divider">Import</div>
         <div class="row-status-tools">
-            <label class="field">
-              <span>Import status file</span>
-              <input id="rowStatusCsvInput" type="file" accept=".xls,.xml,application/vnd.ms-excel,application/xml,text/xml" aria-label="Import status file">
-            </label>
+            <div class="field">
+              <span>Status file</span>
+              <label class="file-picker">
+                <input id="rowStatusCsvInput" type="file" accept=".xls,.xml,application/vnd.ms-excel,application/xml,text/xml" aria-label="Import status file">
+                <span class="file-picker-button">Choose file</span>
+                <span class="file-picker-name">No file selected</span>
+              </label>
+            </div>
           </div>
         <div class="field">
-          <span>Import media image CSV</span>
+          <span>Media image CSV</span>
+          <label class="file-picker">
             <input id="csvInput" type="file" accept=".csv,text/csv" aria-label="Import media image CSV">
+            <span class="file-picker-button">Choose file</span>
+            <span class="file-picker-name">No file selected</span>
+          </label>
         </div>
         <div class="field">
-          <span>Import media image folder for export</span>
-            <input id="mediaImageFilesInput" type="file" accept="image/*" multiple webkitdirectory aria-label="Import media image folder for export">
+          <span>Media image folder</span>
+          <label class="file-picker">
+            <input id="mediaImageFilesInput" type="file" accept="image/*" multiple webkitdirectory aria-label="Import media image folder">
+            <span class="file-picker-button">Choose file</span>
+            <span class="file-picker-name">No file selected</span>
+          </label>
         </div>
+        <div class="group-divider">Navigate</div>
         <div class="media-select-row">
           <label class="field media-select-field">
             <span>Manual media image selection</span>
@@ -72,9 +88,9 @@
             </select>
           </label>
           <div class="nav-actions">
-            <button id="prevMediaFileBtn" class="button subtle small" type="button">Previous</button>
+            <button id="prevMediaFileBtn" class="button subtle small nav-icon-btn" type="button" aria-label="Previous media image">←</button>
             <div id="mediaFileProgress" class="progress-pill">0 / 0</div>
-            <button id="nextMediaFileBtn" class="button subtle small" type="button">Next</button>
+            <button id="nextMediaFileBtn" class="button subtle small nav-icon-btn" type="button" aria-label="Next media image">→</button>
           </div>
         </div>
         <div class="media-select-row">
@@ -85,9 +101,9 @@
             </select>
           </label>
           <div class="nav-actions">
-            <button id="prevRowBtn" class="button subtle small" type="button">Previous</button>
+            <button id="prevRowBtn" class="button subtle small nav-icon-btn" type="button" aria-label="Previous imported media image">←</button>
             <div id="mediaRowProgress" class="progress-pill">0 / 0</div>
-            <button id="nextRowBtn" class="button subtle small" type="button">Next</button>
+            <button id="nextRowBtn" class="button subtle small nav-icon-btn" type="button" aria-label="Next imported media image">→</button>
           </div>
         </div>
         <div class="row-review-actions">
@@ -99,8 +115,9 @@
       </section>
 
       <section class="panel">
-        <h2>Pair metadata</h2>
+        <h2>Pair metadata <span class="step-num">①</span></h2>
         <div class="grid two">
+          <div class="group-divider">Source figure</div>
           <label class="field">
             <span>Record ID</span>
             <input id="record_id" type="text" readonly>
@@ -132,19 +149,22 @@
             <span>Source figure URL</span>
             <input id="source_figure_url" type="text" placeholder="Optional link to the original scientific figure, report, or data page">
           </label>
-          <label class="field full">
-            <span>Media outlet</span>
-            <input id="media_outlet" type="text" list="mediaOutletOptions" placeholder="Select or type a media outlet">
-            <datalist id="mediaOutletOptions">
-              <option value="BBC News"></option>
-              <option value="The Guardian"></option>
-              <option value="The New York Times"></option>
-            </datalist>
-          </label>
-          <label class="field full">
-            <span>Media article title</span>
-            <input id="media_article_title" type="text">
-          </label>
+          <div class="group-divider">Media article</div>
+          <div class="media-title-row">
+            <label class="field">
+              <span>Media outlet</span>
+              <input id="media_outlet" type="text" list="mediaOutletOptions" placeholder="Select or type a media outlet">
+              <datalist id="mediaOutletOptions">
+                <option value="BBC News"></option>
+                <option value="The Guardian"></option>
+                <option value="The New York Times"></option>
+              </datalist>
+            </label>
+            <label class="field">
+              <span>Media article title</span>
+              <input id="media_article_title" type="text">
+            </label>
+          </div>
           <label class="field full">
             <span>Media article URL</span>
             <div class="readonly-link-row">
@@ -164,35 +184,36 @@
       </section>
 
       <section class="panel">
-        <h2>Transformation coding</h2>
-        <p class="section-help">
-          The codes below compare the media adaptation to the original scientific figure.
-        </p>
+        <h2>Transformation coding <span class="step-num">②</span></h2>
         <div id="codebookSections" class="sections"></div>
       </section>
 
       <section class="panel">
-        <h2>Notes</h2>
-        <div class="grid two">
-          <label class="field">
-            <span>Overall adaptation intensity</span>
-            <select id="overall_adaptation_intensity">
-              <option value="">Select</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </label>
-          <label class="field">
+        <h2>Notes <span class="step-num">③</span></h2>
+        <div class="notes-grid">
+          <div class="field">
             <span>Coding confidence</span>
-            <select id="coding_confidence">
-              <option value="">Select</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </label>
-          <label class="field full">
+            <input type="hidden" id="coding_confidence">
+            <div class="chip-group notes-confidence-chips">
+              <div class="chip-option">
+                <input type="radio" id="coding_confidence__unset" name="coding_confidence_chip" value="">
+                <label for="coding_confidence__unset">Unset</label>
+              </div>
+              <div class="chip-option">
+                <input type="radio" id="coding_confidence__low" name="coding_confidence_chip" value="low">
+                <label for="coding_confidence__low">Low</label>
+              </div>
+              <div class="chip-option">
+                <input type="radio" id="coding_confidence__medium" name="coding_confidence_chip" value="medium">
+                <label for="coding_confidence__medium">Medium</label>
+              </div>
+              <div class="chip-option">
+                <input type="radio" id="coding_confidence__high" name="coding_confidence_chip" value="high">
+                <label for="coding_confidence__high">High</label>
+              </div>
+            </div>
+          </div>
+          <label class="field">
             <span>Coder notes</span>
             <textarea id="coder_notes" rows="1" placeholder="Notes about ambiguity, interpretation, or missing context."></textarea>
           </label>
@@ -249,32 +270,6 @@
         <button type="button" class="field-card-delete button subtle danger small hidden">Delete item</button>
       </div>
       <div class="chip-group"></div>
-    </div>
-  </template>
-
-  <template id="customFieldTemplate">
-    <div class="custom-field-builder">
-      <button type="button" class="button subtle small custom-field-toggle-btn">Add custom item</button>
-      <div class="custom-field-editor hidden">
-        <div class="custom-field-grid">
-          <label class="field">
-            <span>Custom item name</span>
-            <input type="text" class="custom-field-label" placeholder="e.g. Reference framing">
-          </label>
-          <label class="field">
-            <span>Short explanation</span>
-            <input type="text" class="custom-field-help" placeholder="What exactly should coders look for?">
-          </label>
-          <label class="field full">
-            <span>Specific categories</span>
-            <input type="text" class="custom-field-options" placeholder="Comma-separated, e.g. absent, implicit, explicit">
-          </label>
-        </div>
-        <div class="custom-field-actions">
-          <button type="button" class="button subtle small custom-field-add-btn">Add custom item</button>
-          <button type="button" class="button subtle small custom-field-cancel-btn">Cancel</button>
-        </div>
-      </div>
     </div>
   </template>
 

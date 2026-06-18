@@ -38,42 +38,6 @@ function normalizeRowState(rawState) {
   return grouped;
 }
 
-function loadCustomFieldConfig() {
-  try {
-    return JSON.parse(localStorage.getItem(customFieldsStorageKey) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function persistCustomFields() {
-  const payload = {};
-  codebookSections.forEach((section) => {
-    payload[section.key] = section.fields
-      .filter((field) => field.custom)
-      .map((field) => ({
-        id: field.id,
-        label: field.label,
-        help: field.help,
-        options: field.options,
-        custom: true,
-      }));
-  });
-  localStorage.setItem(customFieldsStorageKey, JSON.stringify(payload));
-}
-
-function hydrateCustomFields() {
-  const config = loadCustomFieldConfig();
-  codebookSections.forEach((section) => {
-    const customFields = config[section.key] || [];
-    customFields.forEach((field) => {
-      if (!section.fields.some((existingField) => existingField.id === field.id)) {
-        section.fields.push(field);
-      }
-    });
-  });
-}
-
 function getRowState(row) {
   if (!row?.__rowKey) return {};
   const group = row.__sourceGroup || "other";
@@ -167,60 +131,6 @@ function clearCompletedRowStates() {
   persistRowState();
 }
 
-function addCustomField(sectionKey, builder) {
-  const preservedSelections = captureCodebookSelections();
-  const labelInput = builder.querySelector(".custom-field-label");
-  const helpInput = builder.querySelector(".custom-field-help");
-  const optionsInput = builder.querySelector(".custom-field-options");
-  const label = (labelInput.value || "").trim();
-  const help = (helpInput.value || "").trim();
-  const options = (optionsInput.value || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((item) => item.toLowerCase().replace(/\s+/g, "_"));
-
-  if (!label || !help || options.length < 2) {
-    alert("Add a custom item with a name, a short explanation, and at least two comma-separated categories.");
-    return;
-  }
-
-  const section = codebookSections.find((entry) => entry.key === sectionKey);
-  if (!section) return;
-
-  section.fields.push({
-    id: `custom_${sectionKey}_${slugify(label)}_${Date.now()}`,
-    label,
-    help,
-    options,
-    custom: true,
-  });
-  persistCustomFields();
-  renderCodebook(preservedSelections);
-}
-
-function resetCustomFieldBuilder(builder) {
-  const labelInput = builder.querySelector(".custom-field-label");
-  const helpInput = builder.querySelector(".custom-field-help");
-  const optionsInput = builder.querySelector(".custom-field-options");
-  const editor = builder.querySelector(".custom-field-editor");
-  const toggleBtn = builder.querySelector(".custom-field-toggle-btn");
-  if (labelInput) labelInput.value = "";
-  if (helpInput) helpInput.value = "";
-  if (optionsInput) optionsInput.value = "";
-  if (editor) editor.classList.add("hidden");
-  if (toggleBtn) toggleBtn.classList.remove("hidden");
-}
-
-function deleteCustomField(sectionKey, fieldId) {
-  const preservedSelections = captureCodebookSelections();
-  const section = codebookSections.find((entry) => entry.key === sectionKey);
-  if (!section) return;
-  section.fields = section.fields.filter((field) => field.id !== fieldId);
-  persistCustomFields();
-  renderCodebook(preservedSelections);
-}
-
 function syncMediaArticleLink(url) {
   const normalizedUrl = (url || "").trim();
   elements.mediaArticleUrlLink.href = normalizedUrl || "#";
@@ -241,6 +151,7 @@ function handleRowStatusImport(event) {
     if (!importedState) {
       alert("Could not import status file. Please use the exported status.xls file.");
       event.target.value = "";
+      syncFilePickerName(event.target);
       return;
     }
     rowStatusGroups.forEach((group) => {

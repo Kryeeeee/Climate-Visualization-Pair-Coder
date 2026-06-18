@@ -1,7 +1,6 @@
 ﻿const recordsStorageKey = "source-image-codebook-records-v3";
 const coderStorageKey = "source-image-codebook-last-coder";
 const rowStateStorageKey = "source-image-codebook-row-state-v1";
-const customFieldsStorageKey = "source-image-codebook-custom-fields-v1";
 const rowStatusGroups = ["bbc", "guardian", "nytimes", "other"];
 const codebookSections = [
   {
@@ -14,7 +13,7 @@ const codebookSections = [
         id: "variables_scope",
         label: "Variables scope",
         help: "Whether data variables or measures are removed or added relative to the original, including thematic, spatial, or temporal variables.",
-        options: ["same", "reduced", "expanded", "not_applicable"],
+        options: ["same", "reduced", "expanded"],
         extraInputs: [
           { id: "variables_data_added_count", label: "Data variables added", type: "number", placeholder: "0" },
           { id: "variables_data_removed_count", label: "Data variables removed", type: "number", placeholder: "0" },
@@ -75,8 +74,8 @@ const codebookSections = [
       {
         id: "legend",
         label: "Legend",
-        help: "Whether the legend is kept, added, removed, changed, or not relevant to this figure.",
-        options: ["maintained", "added", "removed", "changed", "not_applicable"],
+        help: "Whether the legend is the same, added, removed, changed, or not relevant to this figure.",
+        options: ["same", "added", "removed", "changed", "not_applicable"],
         extraInputs: [
           { id: "legend_description", label: "Describe legend change", type: "textarea", placeholder: "Briefly describe the legend change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
         ],
@@ -84,8 +83,8 @@ const codebookSections = [
       {
         id: "visual_emphasis",
         label: "Visual emphasis",
-        help: "Whether highlighting, spotlighting, arrows, contrast, or attention cues are maintained, added, removed, or changed.",
-        options: ["maintained", "added", "removed", "changed", "not_applicable"],
+        help: "Whether highlighting, spotlighting, arrows, contrast, or attention cues are the same, added, removed, or changed.",
+        options: ["same", "added", "removed", "changed", "not_applicable"],
         extraInputs: [
           { id: "visual_emphasis_description", label: "Describe emphasis change", type: "textarea", placeholder: "Briefly describe the emphasis change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
         ],
@@ -99,7 +98,7 @@ const codebookSections = [
       {
         id: "visual_mapping",
         label: "Visual mapping",
-        help: "Whether mappings between data variables and visual channels are maintained, changed, added, or removed.",
+        help: "Whether mappings between data variables and visual channels are the same, added, removed, or changed.",
         options: ["same", "added", "removed", "changed", "not_applicable"],
         extraInputs: [
           { id: "visual_mapping_description", label: "Describe mapping change", type: "textarea", placeholder: "Briefly describe the mapping change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
@@ -108,8 +107,8 @@ const codebookSections = [
       {
         id: "annotations",
         label: "Annotations",
-        help: "Whether annotations inside the visualization are maintained, added, removed, or changed.",
-        options: ["maintained", "added", "removed", "changed", "not_applicable"],
+        help: "Whether annotations inside the visualization are the same, added, removed, or changed.",
+        options: ["same", "added", "removed", "changed", "not_applicable"],
         extraInputs: [
           { id: "annotations_description", label: "Describe annotation change", type: "textarea", placeholder: "Briefly describe the annotation change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
         ],
@@ -117,8 +116,8 @@ const codebookSections = [
       {
         id: "external_notes_explanations",
         label: "Notes / explanations outside the visualization",
-        help: "Whether explanatory notes outside the chart area are maintained, added, removed, or changed.",
-        options: ["maintained", "added", "removed", "changed", "not_applicable"],
+        help: "Whether explanatory notes outside the chart area are the same, added, removed, or changed.",
+        options: ["same", "added", "removed", "changed", "not_applicable"],
         extraInputs: [
           { id: "external_notes_explanations_description", label: "Describe notes change", type: "textarea", placeholder: "Briefly describe the note change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
         ],
@@ -132,8 +131,8 @@ const codebookSections = [
       {
         id: "color_palette",
         label: "Color palette",
-        help: "Whether the overall palette is maintained or changed.",
-        options: ["maintained", "changed", "not_applicable"],
+        help: "Whether the overall palette is the same or changed.",
+        options: ["same", "changed", "not_applicable"],
         extraInputs: [
           { id: "color_palette_description", label: "How palette changed", type: "textarea", placeholder: "e.g. neutral blue palette changed to red warning palette", showWhen: ["changed"], requiredWhen: ["changed"] },
         ],
@@ -149,48 +148,40 @@ const codebookSections = [
       {
         id: "title_word_count_change",
         label: "Title word count",
-        kind: "word_count",
-        sourceCountId: "scientific_title_word_count",
-        sourceCountLabel: "Scientific title words",
-        mediaCountId: "media_title_word_count",
-        mediaCountLabel: "Media title words",
+        options: ["fewer", "same", "more", "not_applicable"],
       },
       {
         id: "subtitle_word_count_change",
         label: "Subtitle word count",
-        kind: "word_count",
-        sourceCountId: "scientific_subtitle_word_count",
-        sourceCountLabel: "Scientific subtitle words",
-        mediaCountId: "media_subtitle_word_count",
-        mediaCountLabel: "Media subtitle words",
+        options: ["fewer", "same", "more", "not_applicable"],
       },
       {
         id: "media_title_function",
         label: "Media title function",
         help: "How the media adaptation title frames the intended takeaway.",
         multiSelect: true,
-        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "absent"],
+        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "not_applicable"],
       },
       {
         id: "scientific_title_function",
         label: "Scientific title function",
         help: "How the original scientific figure title frames the content.",
         multiSelect: true,
-        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "absent"],
+        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "not_applicable"],
       },
       {
         id: "media_subtitle_function",
         label: "Media subtitle function",
         help: "Role of media subtitle, deck, or explanatory text directly attached to the visual.",
         multiSelect: true,
-        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "source_method", "absent"],
+        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "source_method", "not_applicable"],
       },
       {
         id: "scientific_subtitle_function",
         label: "Scientific subtitle function",
         help: "Role of subtitle, caption, or methodological text attached to the original scientific figure.",
         multiSelect: true,
-        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "source_method", "absent"],
+        options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "source_method", "not_applicable"],
       },
       {
         id: "narrative_frame",
@@ -217,7 +208,6 @@ const metadataFields = [
   "source_figure_url",
   "media_outlet",
   ...mediaMetadataFields,
-  "overall_adaptation_intensity",
   "coding_confidence",
   "coder_notes",
 ];
@@ -266,7 +256,6 @@ const elements = {
   recordsTableBody: document.getElementById("recordsTableBody"),
   optionGroupTemplate: document.getElementById("optionGroupTemplate"),
   fieldCardTemplate: document.getElementById("fieldCardTemplate"),
-  customFieldTemplate: document.getElementById("customFieldTemplate"),
 };
 
 let savedRecords = [];
@@ -290,9 +279,9 @@ let currentImportedSourceGroup = "other";
 function init() {
   savedRecords = loadRecords();
   rowState = normalizeRowState(loadRowState());
-  hydrateCustomFields();
   renderCodebook();
   attachFilePreview(elements.sourceImageInput, elements.sourcePreview, "source_image");
+  initFilePickerLabels();
   elements.coderNotesInput.addEventListener("input", () => autoResizeTextarea(elements.coderNotesInput));
 
   elements.csvInput.addEventListener("change", handleCsvImport);
@@ -326,10 +315,35 @@ function init() {
   elements.lightboxCloseBtn.addEventListener("click", closeLightbox);
   document.addEventListener("keydown", handleGlobalKeydown);
 
+  initConfidenceChips();
   restoreLastCoder();
   resetForm(true);
   renderSavedRecords();
   updateNavigationButtons();
   updateImportedMediaFileNavigation();
+}
+
+function initFilePickerLabels() {
+  [
+    elements.sourceImageInput,
+    elements.csvInput,
+    elements.mediaImageFilesInput,
+    elements.rowStatusCsvInput,
+  ].forEach((input) => {
+    input.addEventListener("change", () => syncFilePickerName(input));
+    syncFilePickerName(input);
+  });
+}
+
+function syncFilePickerName(input) {
+  const label = input.closest(".file-picker").querySelector(".file-picker-name");
+  const fileCount = input.files.length;
+  if (!fileCount) {
+    label.textContent = "No file selected";
+  } else if (fileCount === 1) {
+    label.textContent = input.files[0].name;
+  } else {
+    label.textContent = `${fileCount} files`;
+  }
 }
 

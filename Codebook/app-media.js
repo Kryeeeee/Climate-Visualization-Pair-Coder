@@ -1,4 +1,12 @@
-﻿function attachFilePreview(input, previewElement, key, isMedia = false) {
+﻿const ICON_PHOTO = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/></svg>`;
+const ICON_CHART = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 17l0 -5"/><path d="M12 17l0 -3"/><path d="M15 17l0 -1"/></svg>`;
+
+function renderEmptyPreview(target, title, hint, icon) {
+  target.classList.add("muted");
+  target.innerHTML = `<div class="preview-empty"><div class="preview-empty-icon">${icon}</div><div><p class="preview-empty-title">${title}</p><p class="preview-empty-hint">${hint}</p></div></div>`;
+}
+
+function attachFilePreview(input, previewElement, key, isMedia = false) {
   input.addEventListener("change", () => {
     const file = input.files[0] || null;
     currentFiles[key] = file;
@@ -21,8 +29,8 @@
 
 function renderPreview(target, file) {
   if (!file) {
-    target.classList.add("muted");
-    target.textContent = target === elements.mediaPreview ? "No media image selected" : "No original scientific image selected";
+    const isMedia = target === elements.mediaPreview;
+    renderEmptyPreview(target, isMedia ? "No image selected" : "No figure uploaded", isMedia ? "Select a CSV row to load automatically" : "Upload the original scientific figure", isMedia ? ICON_PHOTO : ICON_CHART);
     return;
   }
   target.classList.remove("muted");
@@ -44,8 +52,8 @@ function renderSavedPreviewNote(target, message) {
 
 function renderPreviewFromSource(target, src, caption, emptyText) {
   if (!src) {
-    target.classList.add("muted");
-    target.textContent = emptyText;
+    const isMedia = target === elements.mediaPreview;
+    renderEmptyPreview(target, emptyText, isMedia ? "Select a CSV row to load automatically" : "Upload the original scientific figure", isMedia ? ICON_PHOTO : ICON_CHART);
     return;
   }
   target.classList.remove("muted");
@@ -351,8 +359,7 @@ function clearCodingStateForMediaRowChange() {
   document.getElementById("source_organization").value = "";
   document.getElementById("source_figure_id").value = "";
   document.getElementById("source_figure_url").value = "";
-  document.getElementById("overall_adaptation_intensity").value = "";
-  document.getElementById("coding_confidence").value = "";
+  setCodingConfidence("");
   elements.coderNotesInput.value = "";
   autoResizeTextarea(elements.coderNotesInput);
 
@@ -361,6 +368,7 @@ function clearCodingStateForMediaRowChange() {
   currentFileData.media_image = null;
   currentFileData.source_image = null;
   elements.sourceImageInput.value = "";
+  syncFilePickerName(elements.sourceImageInput);
   if (elements.mediaImageFileSelect) {
     elements.mediaImageFileSelect.value = "";
   }
@@ -383,7 +391,6 @@ function clearCodingStateForMediaRowChange() {
       });
     });
   });
-  updateAllWordCountFields();
   syncAllFieldExtraInputs();
 }
 
@@ -420,10 +427,18 @@ function applyMediaRow(row) {
         ? `<strong>Status:</strong> deleted from queue<br>`
         : "";
   const sourceUnclearLine = state.source_unclear ? "<strong>Source note:</strong> marked source unclear<br>" : "";
-  elements.mediaCsvSummary.innerHTML = `
-      ${dispositionLine}${sourceUnclearLine}
-      <strong>Image file:</strong> ${escapeHtml(extractFilename(row.local_image_path || ""))}
-    `;
+  const outlet = escapeHtml(row.newspaper || row.media_outlet || "");
+  const date = escapeHtml(formatDisplayDate(row.published_date));
+  const filename = escapeHtml(extractFilename(row.local_image_path || ""));
+  const badges = [
+    outlet ? `<span class="summary-badge summary-badge--outlet">${outlet}</span>` : "",
+    date ? `<span class="summary-badge">${date}</span>` : "",
+    filename ? `<span class="summary-badge">${filename}</span>` : "",
+    state.source_unclear ? `<span class="summary-badge summary-badge--warn">Source unclear</span>` : "",
+    state.disposition === "completed" ? `<span class="summary-badge summary-badge--done">Done — ${escapeHtml(state.completed_by || "")}</span>` : "",
+    state.disposition === "not_important" ? `<span class="summary-badge summary-badge--muted">Not important</span>` : "",
+  ].filter(Boolean).join("");
+  elements.mediaCsvSummary.innerHTML = `<div class="summary-badges">${badges || "—"}</div>`;
   if (!currentFiles.media_image) {
     renderPreviewFromPath(elements.mediaPreview, row.local_image_path || "", "No media image selected");
     hydrateMediaPreviewFromImportedFile(row);
@@ -504,7 +519,7 @@ function updateNavigationButtons() {
   elements.markSourceUnclearBtn.disabled = !hasRows || currentIndex === -1;
   elements.deleteRowBtn.disabled = !hasRows || currentIndex === -1;
   const displayIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
-  elements.mediaRowProgress.textContent = `${displayIndex} / ${rows.length}`;
+  elements.mediaRowProgress.textContent = displayIndex > 0 ? `${displayIndex} of ${rows.length}` : `– of ${rows.length}`;
 }
 
 function updateImportedMediaFileNavigation() {
@@ -519,6 +534,6 @@ function updateImportedMediaFileNavigation() {
   elements.nextMediaFileBtn.disabled = !hasManualFileMode
     || (validCurrentIndex && currentIndex >= importedMediaImageFileList.length - 1);
   const displayIndex = validCurrentIndex ? currentIndex + 1 : 0;
-  elements.mediaFileProgress.textContent = `${displayIndex} / ${importedMediaImageFileList.length}`;
+  elements.mediaFileProgress.textContent = displayIndex > 0 ? `${displayIndex} of ${importedMediaImageFileList.length}` : `– of ${importedMediaImageFileList.length}`;
 }
 

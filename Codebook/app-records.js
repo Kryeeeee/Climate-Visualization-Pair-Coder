@@ -63,7 +63,6 @@ function validateRecord(record) {
   if (!record.media_publication_date) requiredMessages.push("Enter a media publication date.");
   if (!record.source_image_filename) requiredMessages.push("Upload the original scientific image.");
   if (!record.media_image_filename) requiredMessages.push("Select the media adaptation image.");
-  if (!record.overall_adaptation_intensity) requiredMessages.push("Select overall adaptation intensity.");
   if (!record.coding_confidence) requiredMessages.push("Select coding confidence.");
 
   codebookSections.forEach((section) => {
@@ -146,13 +145,13 @@ function moveToNextAfterSave() {
   }
   document.getElementById("source_figure_id").value = "";
   document.getElementById("source_figure_url").value = "";
-  document.getElementById("overall_adaptation_intensity").value = "";
-  document.getElementById("coding_confidence").value = "";
+  setCodingConfidence("");
   elements.coderNotesInput.value = "";
   autoResizeTextarea(elements.coderNotesInput);
   currentFiles.source_image = null;
   currentFileData.source_image = null;
   elements.sourceImageInput.value = "";
+  syncFilePickerName(elements.sourceImageInput);
   renderPreview(elements.sourcePreview, null);
   codebookSections.forEach((section) => {
     section.fields.forEach((field) => {
@@ -170,7 +169,6 @@ function moveToNextAfterSave() {
       });
     });
   });
-  updateAllWordCountFields();
   syncAllFieldExtraInputs();
   document.getElementById("source_organization").value = "";
   document.getElementById("coder_name").value = preservedCoder;
@@ -229,8 +227,7 @@ function resetForm(initialLoad = false) {
   mediaMetadataFields.forEach((field) => {
     document.getElementById(field).value = "";
   });
-  document.getElementById("overall_adaptation_intensity").value = "";
-  document.getElementById("coding_confidence").value = "";
+  setCodingConfidence("");
   elements.coderNotesInput.value = "";
   autoResizeTextarea(elements.coderNotesInput);
 
@@ -250,7 +247,6 @@ function resetForm(initialLoad = false) {
       });
     });
   });
-  updateAllWordCountFields();
   syncAllFieldExtraInputs();
 
   currentMediaRow = null;
@@ -260,6 +256,7 @@ function resetForm(initialLoad = false) {
     : "No media image row selected.";
 
   elements.sourceImageInput.value = "";
+  syncFilePickerName(elements.sourceImageInput);
   if (elements.mediaImageFileSelect) {
     elements.mediaImageFileSelect.value = "";
   }
@@ -303,8 +300,7 @@ function loadRecordIntoForm(recordId) {
   document.getElementById("media_article_url").value = record.media_article_url || "";
   document.getElementById("media_publication_date").value = formatDisplayDate(record.media_publication_date);
   document.getElementById("media_updated_date").value = formatDisplayDate(record.media_updated_date);
-  document.getElementById("overall_adaptation_intensity").value = record.overall_adaptation_intensity || "";
-  document.getElementById("coding_confidence").value = record.coding_confidence || "";
+  setCodingConfidence(record.coding_confidence || "");
   elements.coderNotesInput.value = record.coder_notes || "";
   autoResizeTextarea(elements.coderNotesInput);
   syncMediaArticleLink(record.media_article_url || "");
@@ -326,7 +322,6 @@ function loadRecordIntoForm(recordId) {
       });
     });
   });
-  updateAllWordCountFields();
   syncAllFieldExtraInputs();
 
   currentFiles.media_image = null;
@@ -334,6 +329,7 @@ function loadRecordIntoForm(recordId) {
   currentFileData.media_image = null;
   currentFileData.source_image = null;
   elements.sourceImageInput.value = "";
+  syncFilePickerName(elements.sourceImageInput);
 
   const matchedRow = importedRows.find((row) => {
     return (

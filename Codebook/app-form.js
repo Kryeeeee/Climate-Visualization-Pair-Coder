@@ -2,14 +2,31 @@
   return document.getElementById(id)?.value?.trim() ?? "";
 }
 
+function setCodingConfidence(value) {
+  const hidden = document.getElementById("coding_confidence");
+  if (hidden) hidden.value = value;
+  document.querySelectorAll('input[name="coding_confidence_chip"]').forEach((radio) => {
+    radio.checked = radio.value === value;
+  });
+}
+
+function initConfidenceChips() {
+  document.querySelectorAll('input[name="coding_confidence_chip"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const hidden = document.getElementById("coding_confidence");
+      if (hidden) hidden.value = radio.value;
+    });
+  });
+}
+
 function getRadioValue(name) {
   const checked = document.querySelector(`input[name="${name}"]:checked`);
   return checked ? checked.value : "";
 }
 
 function getFieldValue(field) {
-  if (field.kind === "word_count") {
-    return getFormValue(field.id);
+  if (document.getElementById(`${field.id}__not_applicable`)?.checked) {
+    return "not_applicable";
   }
   if (!field.multiSelect) {
     return getRadioValue(field.id);
@@ -52,18 +69,13 @@ function restoreCodebookSelections(selections) {
       });
     });
   });
-  updateAllWordCountFields();
   syncAllFieldExtraInputs();
 }
 
 function restoreFieldSelection(field, value) {
-  if (field.kind === "word_count") {
-    const valueInput = document.getElementById(field.id);
-    const notApplicableInput = document.getElementById(`${field.id}__not_applicable`);
-    if (valueInput) valueInput.value = value || "";
-    if (notApplicableInput) notApplicableInput.checked = value === "not_applicable";
-    updateWordCountField(field);
-    return;
+  const notApplicableInput = document.getElementById(`${field.id}__not_applicable`);
+  if (notApplicableInput) {
+    notApplicableInput.checked = value === "not_applicable";
   }
   const values = String(value || "")
     .split("|")
@@ -73,17 +85,22 @@ function restoreFieldSelection(field, value) {
   inputs.forEach((input) => {
     input.checked = false;
   });
+  if (value === "not_applicable") {
+    syncNotApplicableFieldState(field);
+    return;
+  }
   if (!values.length) {
     const unsetInput = document.getElementById(`${field.id}__unset`);
     if (unsetInput) unsetInput.checked = true;
+    syncNotApplicableFieldState(field);
     return;
   }
-  const normalizedValues = values.includes("absent") ? ["absent"] : values;
-  normalizedValues.forEach((optionValue) => {
+  values.forEach((optionValue) => {
     const input = document.getElementById(`${field.id}__${optionValue || "unset"}`);
     if (input) input.checked = true;
   });
   if (field.multiSelect) ensureMultiSelectHasSelection(field);
+  syncNotApplicableFieldState(field);
 }
 
 function buildRecordId() {

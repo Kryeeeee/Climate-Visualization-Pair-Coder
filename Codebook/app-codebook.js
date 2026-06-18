@@ -75,25 +75,39 @@ function renderCodebook(preservedSelections = null) {
       const fieldCard = fieldFragment.querySelector(".field-card");
       const fieldHead = fieldFragment.querySelector(".field-card-head");
       const deleteButton = fieldFragment.querySelector(".field-card-delete");
-      fieldFragment.querySelector(".field-card-label").textContent = field.custom ? `* ${field.label}` : field.label;
+      const labelNode = fieldFragment.querySelector(".field-card-label");
+      labelNode.textContent = field.custom ? `* ${field.label}` : field.label;
+      const fieldCopy = fieldFragment.querySelector(".field-card-copy");
       const helpNode = fieldFragment.querySelector(".field-card-help");
+      const titleRow = document.createElement("div");
+      titleRow.className = "field-card-title-row";
+      fieldCopy.insertBefore(titleRow, helpNode);
+      titleRow.appendChild(labelNode);
       helpNode.textContent = field.help || "";
       helpNode.classList.toggle("hidden", !field.help);
       const chipGroup = fieldFragment.querySelector(".chip-group");
-      if (field.kind === "word_count") {
-        fieldCard.classList.add("word-count-card");
-        const fieldCopy = fieldFragment.querySelector(".field-card-copy");
-        fieldCopy.appendChild(makeWordCountNotApplicable(field));
-        chipGroup.remove();
-        fieldCard.appendChild(makeWordCountControl(field));
-      } else {
-        chipGroup.appendChild(makeChip(field, "", "Unset"));
-        field.options.forEach((option) => chipGroup.appendChild(makeChip(field, option, prettifyOption(option))));
-        chipGroup.addEventListener("change", (event) => {
-          handleChipChange(event, field);
-          syncFieldExtraInputs(fieldCard, field);
-        });
+      const hasNotApplicable = field.options?.includes("not_applicable");
+      if (hasNotApplicable) {
+        fieldCard.classList.add("has-not-applicable");
       }
+      if (hasNotApplicable) {
+        titleRow.appendChild(makeNotApplicableControl(field, () => {
+          handleNotApplicableChange(field);
+          syncFieldExtraInputs(fieldCard, field);
+        }));
+      }
+      chipGroup.appendChild(makeChip(field, "", "Unset"));
+      field.options
+        .filter((option) => option !== "not_applicable")
+        .forEach((option) => chipGroup.appendChild(makeChip(field, option, prettifyOption(option))));
+      chipGroup.addEventListener("change", (event) => {
+        if (hasNotApplicable) {
+          document.getElementById(`${field.id}__not_applicable`).checked = false;
+          syncNotApplicableFieldState(field);
+        }
+        handleChipChange(event, field);
+        syncFieldExtraInputs(fieldCard, field);
+      });
       if (field.extraInputs?.length) {
         const extraGroup = document.createElement("div");
         extraGroup.className = "field-extra-grid";
@@ -107,27 +121,8 @@ function renderCodebook(preservedSelections = null) {
         fieldCard.appendChild(extraGroup);
         syncFieldExtraInputs(fieldCard, field);
       }
-      if (field.custom) {
-        fieldHead.classList.add("with-delete");
-        deleteButton.classList.remove("hidden");
-        deleteButton.addEventListener("click", () => deleteCustomField(section.key, field.id));
-      }
       fieldGroups.appendChild(fieldFragment);
     });
-
-    const customFieldFragment = elements.customFieldTemplate.content.cloneNode(true);
-    const builder = customFieldFragment.querySelector(".custom-field-builder");
-    const toggleBtn = customFieldFragment.querySelector(".custom-field-toggle-btn");
-    const cancelBtn = customFieldFragment.querySelector(".custom-field-cancel-btn");
-    const editor = customFieldFragment.querySelector(".custom-field-editor");
-    builder.dataset.sectionKey = section.key;
-    toggleBtn.addEventListener("click", () => {
-      editor.classList.remove("hidden");
-      toggleBtn.classList.add("hidden");
-    });
-    cancelBtn.addEventListener("click", () => resetCustomFieldBuilder(builder));
-    builder.querySelector(".custom-field-add-btn").addEventListener("click", () => addCustomField(section.key, builder));
-    fieldGroups.appendChild(customFieldFragment);
 
     elements.sectionRoot.appendChild(fragment);
   });
@@ -149,83 +144,35 @@ function makeChip(field, optionValue, optionLabel) {
   return wrapper;
 }
 
-function makeWordCountControl(field) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "word-count-control";
-  wrapper.innerHTML = `
-    <input id="${field.id}" type="hidden" value="">
-    <div class="word-count-grid">
-      <label class="field field-extra-number">
-        <span>${escapeHtml(field.sourceCountLabel)}</span>
-        <input id="${field.sourceCountId}" type="number" min="0" step="1" placeholder="0">
-      </label>
-      <label class="field field-extra-number">
-        <span>${escapeHtml(field.mediaCountLabel)}</span>
-        <input id="${field.mediaCountId}" type="number" min="0" step="1" placeholder="0">
-      </label>
-      <output id="${field.id}__result" class="word-count-result">Unset</output>
-    </div>
-  `;
-  const sourceInput = wrapper.querySelector(`#${field.sourceCountId}`);
-  const mediaInput = wrapper.querySelector(`#${field.mediaCountId}`);
-  [sourceInput, mediaInput].forEach((input) => {
-    input.addEventListener("input", () => updateWordCountField(field));
-    input.addEventListener("change", () => updateWordCountField(field));
-  });
-  return wrapper;
-}
-
-function makeWordCountNotApplicable(field) {
+function makeNotApplicableControl(field, onChange) {
   const label = document.createElement("label");
-  label.className = "word-count-na";
+  label.className = "field-not-applicable";
   label.innerHTML = `
     <input id="${field.id}__not_applicable" type="checkbox">
     <span>Not applicable</span>
   `;
   const input = label.querySelector("input");
-  input.addEventListener("input", () => updateWordCountField(field));
-  input.addEventListener("change", () => updateWordCountField(field));
+  input.addEventListener("input", onChange);
+  input.addEventListener("change", onChange);
   return label;
 }
 
-function updateWordCountField(field) {
-  const valueInput = document.getElementById(field.id);
-  const sourceInput = document.getElementById(field.sourceCountId);
-  const mediaInput = document.getElementById(field.mediaCountId);
+function handleNotApplicableChange(field) {
   const notApplicableInput = document.getElementById(`${field.id}__not_applicable`);
-  const resultOutput = document.getElementById(`${field.id}__result`);
   if (notApplicableInput.checked) {
-    valueInput.value = "not_applicable";
-    sourceInput.value = "";
-    mediaInput.value = "";
-    sourceInput.disabled = true;
-    mediaInput.disabled = true;
+    document.querySelectorAll(`input[name="${field.id}"]`).forEach((input) => {
+      input.checked = false;
+    });
   } else {
-    sourceInput.disabled = false;
-    mediaInput.disabled = false;
-    const sourceCount = Number(sourceInput.value);
-    const mediaCount = Number(mediaInput.value);
-    if (sourceInput.value === "" || mediaInput.value === "") {
-      valueInput.value = "";
-    } else if (mediaCount < sourceCount) {
-      valueInput.value = "fewer_words";
-    } else if (mediaCount > sourceCount) {
-      valueInput.value = "more_words";
-    } else {
-      valueInput.value = "similar_words";
-    }
+    document.getElementById(`${field.id}__unset`).checked = true;
   }
-  if (resultOutput) {
-    resultOutput.textContent = valueInput.value ? prettifyOption(valueInput.value) : "Unset";
-  }
+  syncNotApplicableFieldState(field);
 }
 
-function updateAllWordCountFields() {
-  codebookSections.forEach((section) => {
-    section.fields.forEach((field) => {
-      if (field.kind === "word_count") updateWordCountField(field);
-    });
-  });
+function syncNotApplicableFieldState(field) {
+  const notApplicableInput = document.getElementById(`${field.id}__not_applicable`);
+  if (!notApplicableInput) return;
+  notApplicableInput.closest(".field-card").classList.toggle("not-applicable-selected", notApplicableInput.checked);
 }
 
 function handleChipChange(event, field) {
@@ -236,14 +183,14 @@ function handleChipChange(event, field) {
     return;
   }
   const inputs = Array.from(document.querySelectorAll(`input[name="${field.id}"]`));
-  if (changedInput.value === "" || changedInput.value === "absent") {
+  if (changedInput.value === "") {
     inputs.forEach((input) => {
       input.checked = input === changedInput;
     });
     return;
   }
   inputs.forEach((input) => {
-    if (input.value === "" || input.value === "absent") {
+    if (input.value === "") {
       input.checked = false;
     }
   });
@@ -284,6 +231,9 @@ function makeExtraInputControl(field, extraInput) {
   } else {
     control = document.createElement("input");
     control.type = extraInput.type || "text";
+    if (extraInput.type === "number") {
+      control.min = "0";
+    }
   }
   control.id = extraInput.id;
   control.placeholder = extraInput.placeholder || "";
@@ -358,21 +308,14 @@ function getCodebookOutputFields() {
 }
 
 function getFieldOutputInputIds(field) {
-  if (field.kind === "word_count") {
-    return [field.sourceCountId, field.mediaCountId];
-  }
   return (field.extraInputs || []).map((extraInput) => extraInput.id);
 }
 
 function getFieldSupplementalInputIds(field) {
-  if (field.kind === "word_count") {
-    return [field.sourceCountId, field.mediaCountId];
-  }
   return [];
 }
 
 function prettifyOption(value) {
-  if (value === "similar_words") return "Same Words";
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
