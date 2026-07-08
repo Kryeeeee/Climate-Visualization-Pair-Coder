@@ -1,0 +1,4 @@
+All candidates before filter | articles: 800 | images: 1871
+Downloaded static images after filter | articles: 753 | images: 1807
+Final articles CSV: D:\FR\IGD\IPCC internship\Scripts\output\guardian\articles_2021.csv
+Final images CSV: D:\FR\IGD\IPCC internship\Scripts\output\guardian\guardian_images_2021.csv
