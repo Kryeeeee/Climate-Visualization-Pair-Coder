@@ -1,4 +1,0 @@
-All candidates before filter | articles: 122 | images: 242
-Downloaded static images after filter | articles: 121 | images: 241
-Final articles CSV: D:\FR\IGD\IPCC internship\Scripts\output\nytimes\articles_2019.csv
-Final images CSV: D:\FR\IGD\IPCC internship\Scripts\output\nytimes\nytimes_images_2019.csv
