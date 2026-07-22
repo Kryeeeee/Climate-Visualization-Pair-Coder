@@ -1,16 +1,16 @@
 ﻿async function exportCsv() {
   if (!savedRecords.length) {
-    alert("There are no saved records to export.");
+    showToast("There are no saved records to export.", "info");
     return;
   }
   const invalidRecord = savedRecords.find((record) => validateRecord(record).length > 0);
   if (invalidRecord) {
-    alert(`Cannot export because record "${invalidRecord.record_id}" is not fully coded. Source organization, Source figure ID, metadata, and all required coding fields must be complete.`);
+    showToast(`Cannot export: record "${invalidRecord.record_id}" is not fully coded. Load it, complete the highlighted fields, and save again.`, "error", 8000);
     return;
   }
   const invalidImageRecord = savedRecords.find((record) => validateRecordImages(record).length > 0);
   if (invalidImageRecord) {
-    alert(`Cannot export because record "${invalidImageRecord.record_id}" does not contain exportable image data. Import the media image files/folder, select the missing image, then save the pair again.`);
+    showToast(`Cannot export: record "${invalidImageRecord.record_id}" has no exportable image data. Import the media image files/folder, select the missing image, then save the pair again.`, "error", 8000);
     return;
   }
   const headers = [
@@ -37,9 +37,11 @@
   });
   const csvContent = recordsToCsv(exportRows, headers);
 
+  const exportBtnOriginalHtml = elements.exportCsvBtn.innerHTML;
   try {
     elements.exportCsvBtn.disabled = true;
-    elements.exportCsvBtn.textContent = "Exporting...";
+    elements.exportCsvBtn.classList.add("loading");
+    elements.exportCsvBtn.textContent = "Exporting…";
     const zipEntries = [
       {
         path: "climate_visualization_coding.csv",
@@ -62,9 +64,11 @@
 
     const zipBlob = buildZipBlob(zipEntries);
     downloadBlob(zipBlob, "climate_visualization_export.zip");
+    showToast(`Exported ${savedRecords.length} record(s) with images.`, "success");
   } finally {
     elements.exportCsvBtn.disabled = false;
-    elements.exportCsvBtn.textContent = "Export";
+    elements.exportCsvBtn.classList.remove("loading");
+    elements.exportCsvBtn.innerHTML = exportBtnOriginalHtml;
   }
 }
 

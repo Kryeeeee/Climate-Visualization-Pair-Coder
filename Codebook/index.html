@@ -4,28 +4,47 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Climate Visualization Pair Coder</title>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("codebook-theme");
+      var theme = stored || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="hero">
     <div>
       <h1>Climate Visualization Pair Coder</h1>
-      <p class="subtitle">
-        Import a media-image CSV and media image folder, select a media adaptation image, pair it with an original scientific figure,
-        and code the transformation.
-      </p>
+      <p class="hero-hint">Shortcuts: <kbd>Ctrl</kbd>+<kbd>S</kbd> save &amp; next &nbsp;·&nbsp; <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> previous / next image</p>
     </div>
-    <div class="hero-actions">
-      <button id="saveNextBtn" class="button dark">Save and next</button>
-      <button id="exportCsvBtn" class="button">Export</button>
-      <button id="clearFormBtn" class="button subtle">Reset form</button>
+    <div class="hero-right">
+      <div class="hero-status">
+        <div id="batchProgress" class="batch-progress hidden">
+          <div class="batch-progress-track"><div id="batchProgressFill" class="batch-progress-fill"></div></div>
+          <span id="batchProgressText" class="batch-progress-text">0 / 0 coded</span>
+        </div>
+        <span id="saveStatusChip" class="save-status" data-state="clean"><span class="save-status-dot" aria-hidden="true"></span><span id="saveStatusLabel">Saved</span></span>
+        <button id="themeToggleBtn" class="button subtle small icon-only" type="button" title="Toggle light / dark theme" aria-label="Toggle light / dark theme">
+          <svg class="theme-icon-moon" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 9.5a5.5 5.5 0 1 1-7-7 4.5 4.5 0 0 0 7 7z"/></svg>
+          <svg class="theme-icon-sun" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3.2"/><line x1="8" y1="1" x2="8" y2="2.6"/><line x1="8" y1="13.4" x2="8" y2="15"/><line x1="1" y1="8" x2="2.6" y2="8"/><line x1="13.4" y1="8" x2="15" y2="8"/><line x1="3" y1="3" x2="4.2" y2="4.2"/><line x1="11.8" y1="11.8" x2="13" y2="13"/><line x1="3" y1="13" x2="4.2" y2="11.8"/><line x1="11.8" y1="4.2" x2="13" y2="3"/></svg>
+        </button>
+      </div>
+      <div class="hero-actions">
+        <button id="saveNextBtn" class="button dark"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2 9 6 13 14 4"/></svg>Save and next</button>
+        <button id="clearFormBtn" class="button ghost"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a6 6 0 1 0 .5-3"/><polyline points="1 4 2.5 8 6 6"/></svg>Reset form</button>
+      </div>
     </div>
   </header>
 
   <main class="workspace">
     <section class="left-column">
       <section class="panel image-pair-panel">
-        <h2>Image pair</h2>
+        <div class="panel-head-row">
+          <h2>Image pair</h2>
+          <button id="compareBtn" class="button subtle small" type="button" title="Open both images side by side"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3" width="5.5" height="10" rx="1"/><rect x="9" y="3" width="5.5" height="10" rx="1"/></svg>Compare</button>
+        </div>
         <div class="image-pair-grid">
           <section class="image-card">
             <div class="image-card-head">
@@ -36,7 +55,7 @@
           </section>
           <section class="image-card">
             <div class="image-card-head">
-              <h3>Original scientific figure</h3>
+              <h3>Original figure</h3>
               <label class="file-picker inline-upload">
                 <input id="source_image" type="file" accept="image/*" aria-label="Upload original scientific image">
                 <span class="file-picker-button">Choose file</span>
@@ -50,37 +69,42 @@
     </section>
 
     <section class="right-column">
+      <nav class="section-rail" id="sectionRail" aria-label="Coding sections"></nav>
       <section class="panel media-import-panel">
         <h2>Media adaptation</h2>
-        <div class="group-divider">Import</div>
-        <div class="row-status-tools">
+        <button type="button" id="importGroupToggle" class="group-divider group-divider-toggle" aria-expanded="true" aria-controls="importGroupBody">Import<svg class="group-toggle-caret" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 1 5 5 9 1"/></svg></button>
+        <div id="importGroupBody">
+          <div class="import-group-inner">
+            <div class="row-status-tools">
+              <div class="field">
+                <span>Status file</span>
+                <label class="file-picker">
+                  <input id="rowStatusCsvInput" type="file" accept=".xls,.xml,application/vnd.ms-excel,application/xml,text/xml" aria-label="Import status file">
+                  <span class="file-picker-button">Choose file</span>
+                  <span class="file-picker-name">No file selected</span>
+                </label>
+              </div>
+            </div>
             <div class="field">
-              <span>Status file</span>
+              <span>Media image CSV</span>
               <label class="file-picker">
-                <input id="rowStatusCsvInput" type="file" accept=".xls,.xml,application/vnd.ms-excel,application/xml,text/xml" aria-label="Import status file">
+                <input id="csvInput" type="file" accept=".csv,text/csv" aria-label="Import media image CSV">
                 <span class="file-picker-button">Choose file</span>
                 <span class="file-picker-name">No file selected</span>
               </label>
             </div>
+            <div class="field">
+              <span>Media image folder</span>
+              <label class="file-picker">
+                <input id="mediaImageFilesInput" type="file" accept="image/*" multiple webkitdirectory aria-label="Import media image folder">
+                <span class="file-picker-button">Choose folder</span>
+                <span class="file-picker-name">No folder selected</span>
+              </label>
+            </div>
           </div>
-        <div class="field">
-          <span>Media image CSV</span>
-          <label class="file-picker">
-            <input id="csvInput" type="file" accept=".csv,text/csv" aria-label="Import media image CSV">
-            <span class="file-picker-button">Choose file</span>
-            <span class="file-picker-name">No file selected</span>
-          </label>
-        </div>
-        <div class="field">
-          <span>Media image folder</span>
-          <label class="file-picker">
-            <input id="mediaImageFilesInput" type="file" accept="image/*" multiple webkitdirectory aria-label="Import media image folder">
-            <span class="file-picker-button">Choose file</span>
-            <span class="file-picker-name">No file selected</span>
-          </label>
         </div>
         <div class="group-divider">Navigate</div>
-        <div class="media-select-row">
+        <div class="media-select-row hidden" id="manualMediaRow">
           <label class="field media-select-field">
             <span>Manual media image selection</span>
             <select id="mediaImageFileSelect" disabled>
@@ -107,109 +131,140 @@
           </div>
         </div>
         <div class="row-review-actions">
-          <button id="markNotImportantBtn" class="button subtle small" type="button">Mark not important</button>
-          <button id="markSourceUnclearBtn" class="button subtle small" type="button">Mark source unclear</button>
-          <button id="deleteRowBtn" class="button subtle danger small" type="button">Delete row</button>
+          <button id="markNotImportantBtn" class="button subtle small" type="button" title="Mark row as not important"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><line x1="5" y1="8" x2="11" y2="8"/></svg><span>Not important</span></button>
+          <button id="markSourceUnclearBtn" class="button subtle small" type="button" title="Mark source as unclear"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M7 6.5a1.2 1.2 0 0 1 2.4 0c0 .9-.8 1.2-1.2 2"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></svg><span>Source unclear</span></button>
+          <button id="undoRowStatusBtn" class="button subtle small" type="button" title="Undo last row status change"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 9a5 5 0 1 1-1.7-3.8"/><polyline points="11.5 1.5 11.5 5.2 7.8 5.2"/></svg><span>Undo</span></button>
+          <button id="deleteRowBtn" class="button subtle danger small" type="button" title="Delete row from coding queue"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" y1="4" x2="14" y2="4"/><path d="M6 4V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V4"/><path d="M5 4l.5 9h5l.5-9"/></svg><span>Delete</span></button>
         </div>
-        <div id="mediaCsvSummary" class="summary-box">No media image row selected.</div>
       </section>
 
-      <section class="panel">
-        <h2>Pair metadata <span class="step-num">1</span></h2>
-        <div class="grid two">
-          <div class="group-divider">Source figure</div>
-          <label class="field">
-            <span>Record ID</span>
-            <input id="record_id" type="text" readonly>
-          </label>
-          <label class="field">
-            <span>Coder name</span>
-            <select id="coder_name">
-              <option value="">Select coder</option>
-              <option value="Vanessa">Vanessa</option>
-              <option value="Maria Jesus">Maria Jesus</option>
-              <option value="Yongyi">Yongyi</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Source organization</span>
-            <input id="source_organization" type="text" list="sourceOrganizationOptions" placeholder="Select or type a source">
-            <datalist id="sourceOrganizationOptions">
-              <option value="IPCC"></option>
-              <option value="ECMWF / Copernicus"></option>
-              <option value="NASA"></option>
-              <option value="NOAA"></option>
-            </datalist>
-          </label>
-          <label class="field">
-            <span>Source figure ID</span>
-            <input id="source_figure_id" type="text" placeholder="e.g. AR5 WGI SPM.7 or Figure 3">
-          </label>
-          <label class="field full">
-            <span>Source figure URL</span>
-            <input id="source_figure_url" type="text" placeholder="Optional link to the original scientific figure, report, or data page">
-          </label>
-          <div class="group-divider">Media article</div>
-          <div class="media-title-row">
-            <label class="field">
-              <span>Media outlet</span>
-              <input id="media_outlet" type="text" list="mediaOutletOptions" placeholder="Select or type a media outlet">
-              <datalist id="mediaOutletOptions">
-                <option value="BBC News"></option>
-                <option value="The Guardian"></option>
-                <option value="The New York Times"></option>
-              </datalist>
-            </label>
-            <label class="field">
-              <span>Media article title</span>
-              <input id="media_article_title" type="text">
-            </label>
-          </div>
-          <label class="field full">
-            <span>Media article URL</span>
-            <div class="readonly-link-row">
-              <input id="media_article_url" type="text">
-              <a id="mediaArticleUrlLink" class="field-link disabled" href="#" target="_blank" rel="noopener noreferrer">Open article</a>
+      <section class="panel pair-metadata-panel">
+        <h2>Pair metadata</h2>
+        <div class="metadata-cards">
+          <div class="metadata-card">
+            <div class="metadata-card-title"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="12" height="14" rx="1.5"/><line x1="5" y1="6" x2="11" y2="6"/><line x1="5" y1="9" x2="9" y2="9"/></svg>Source figure</div>
+            <div class="grid two">
+              <label class="field">
+                <span>Record ID</span>
+                <input id="record_id" type="text" readonly>
+              </label>
+              <label class="field">
+                <span>Coder name</span>
+                <select id="coder_name">
+                  <option value="">Select coder</option>
+                  <option value="Vanessa">Vanessa</option>
+                  <option value="Maria Jesus">Maria Jesus</option>
+                  <option value="Yongyi">Yongyi</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Source organization</span>
+                <div class="combobox" data-options="IPCC|ECMWF / Copernicus|NASA|NOAA">
+                  <input id="source_organization" type="text" placeholder="Select or type a source" autocomplete="off">
+                  <button type="button" class="combobox-arrow" tabindex="-1" aria-hidden="true"><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
+                  <ul class="combobox-dropdown" hidden role="listbox"></ul>
+                </div>
+              </label>
+              <label class="field hidden" id="ipccReportField">
+                <span>IPCC report / cycle</span>
+                <div class="combobox" data-options="AR6|AR5|SR1.5|SROCC|SRCCL|SYR">
+                  <input id="source_report_cycle" type="text" placeholder="e.g. AR6" autocomplete="off">
+                  <button type="button" class="combobox-arrow" tabindex="-1" aria-hidden="true"><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
+                  <ul class="combobox-dropdown" hidden role="listbox"></ul>
+                </div>
+              </label>
+              <label class="field hidden" id="ipccWorkingGroupField">
+                <span>IPCC working group</span>
+                <select id="source_working_group">
+                  <option value="">Select</option>
+                  <option value="WGI">WGI</option>
+                  <option value="WGII">WGII</option>
+                  <option value="WGIII">WGIII</option>
+                  <option value="SYR">SYR</option>
+                  <option value="not_applicable">Not applicable</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Source figure ID</span>
+                <div class="inline-control-row">
+                  <input id="source_figure_id" type="text" placeholder="e.g. AR5 WGI SPM.7 or Figure 3">
+                  <button id="generateSourceFigureIdBtn" class="button subtle small" type="button">Generate</button>
+                </div>
+              </label>
+              <label class="field">
+                <span>Source figure URL</span>
+                <input id="source_figure_url" type="text" placeholder="Link to original figure, report, or data page">
+              </label>
+              <label class="field">
+                <span>Additional source(s)</span>
+                <textarea id="additional_sources" rows="1" placeholder="If the figure combines multiple data sources"></textarea>
+              </label>
+              <label class="field full">
+                <span>Source notes</span>
+                <textarea id="source_notes" rows="1" placeholder="Notes"></textarea>
+              </label>
             </div>
-          </label>
-          <label class="field">
-            <span>Media publication date</span>
-            <input id="media_publication_date" type="text" placeholder="month-day-year">
-          </label>
-          <label class="field">
-            <span>Media updated date</span>
-            <input id="media_updated_date" type="text" placeholder="month-day-year">
-          </label>
+          </div>
+          <div class="metadata-card">
+            <div class="metadata-card-title"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h10a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><polyline points="2 6 8 9 14 6"/></svg>Media article</div>
+            <div class="grid two">
+              <div class="media-title-row">
+                <label class="field">
+                  <span>Media outlet</span>
+                  <div class="combobox" data-options="BBC News|The Guardian|The New York Times">
+                    <input id="media_outlet" type="text" placeholder="Select or type a media outlet" autocomplete="off">
+                    <button type="button" class="combobox-arrow" tabindex="-1" aria-hidden="true"><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
+                    <ul class="combobox-dropdown" hidden role="listbox"></ul>
+                  </div>
+                </label>
+                <label class="field">
+                  <span>Media article title</span>
+                  <input id="media_article_title" type="text">
+                </label>
+              </div>
+              <label class="field full">
+                <span>Media article URL</span>
+                <div class="readonly-link-row">
+                  <input id="media_article_url" type="text">
+                  <a id="mediaArticleUrlLink" class="field-link disabled" href="#" target="_blank" rel="noopener noreferrer">Open article</a>
+                </div>
+              </label>
+              <label class="field">
+                <span>Media publication date</span>
+                <input id="media_publication_date" type="text" inputmode="numeric" placeholder="yyyy/mm/dd" autocomplete="off">
+              </label>
+              <label class="field">
+                <span>Media updated date</span>
+                <input id="media_updated_date" type="text" inputmode="numeric" placeholder="yyyy/mm/dd" autocomplete="off">
+              </label>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section class="panel">
-        <h2>Transformation coding <span class="step-num">2</span></h2>
+      <section class="panel transformation-coding-panel">
+        <h2>Transformation coding</h2>
         <div id="codebookSections" class="sections"></div>
       </section>
 
       <section class="panel">
-        <h2>Notes <span class="step-num">3</span></h2>
+        <h2>Notes</h2>
         <div class="notes-grid">
-          <div class="field">
+          <div class="field" id="codingConfidenceField">
             <span>Coding confidence</span>
             <input type="hidden" id="coding_confidence">
             <div class="chip-group notes-confidence-chips">
               <div class="chip-option">
-                <input type="radio" id="coding_confidence__unset" name="coding_confidence_chip" value="">
-                <label for="coding_confidence__unset">Unset</label>
-              </div>
-              <div class="chip-option">
                 <input type="radio" id="coding_confidence__low" name="coding_confidence_chip" value="low">
-                <label for="coding_confidence__low">Low</label>
+                <label for="coding_confidence__low"><svg class="chip-icon" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="8" width="2.6" height="3" rx="0.6" fill="currentColor"/><rect x="4.7" y="5" width="2.6" height="6" rx="0.6" fill="currentColor" opacity="0.28"/><rect x="8.4" y="2" width="2.6" height="9" rx="0.6" fill="currentColor" opacity="0.28"/></svg>Low</label>
               </div>
               <div class="chip-option">
                 <input type="radio" id="coding_confidence__medium" name="coding_confidence_chip" value="medium">
-                <label for="coding_confidence__medium">Medium</label>
+                <label for="coding_confidence__medium"><svg class="chip-icon" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="8" width="2.6" height="3" rx="0.6" fill="currentColor"/><rect x="4.7" y="5" width="2.6" height="6" rx="0.6" fill="currentColor"/><rect x="8.4" y="2" width="2.6" height="9" rx="0.6" fill="currentColor" opacity="0.28"/></svg>Medium</label>
               </div>
               <div class="chip-option">
                 <input type="radio" id="coding_confidence__high" name="coding_confidence_chip" value="high">
-                <label for="coding_confidence__high">High</label>
+                <label for="coding_confidence__high"><svg class="chip-icon" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="8" width="2.6" height="3" rx="0.6" fill="currentColor"/><rect x="4.7" y="5" width="2.6" height="6" rx="0.6" fill="currentColor"/><rect x="8.4" y="2" width="2.6" height="9" rx="0.6" fill="currentColor"/></svg>High</label>
               </div>
             </div>
           </div>
@@ -222,23 +277,21 @@
 
       <section class="panel">
         <div class="records-head">
-          <div>
-            <h2>Saved records</h2>
-            <p class="section-help">Saved in your browser until exported or cleared.</p>
-          </div>
+          <h2>Saved records</h2>
           <div class="records-actions">
             <div class="records-count"><span id="recordCount">0</span> saved</div>
+            <button id="exportCsvBtn" class="button small" type="button"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="2" x2="8" y2="10"/><polyline points="5 7 8 10 11 7"/><line x1="2" y1="14" x2="14" y2="14"/></svg>Export</button>
             <button id="clearRecordsBtn" class="button subtle danger small" type="button">Delete saved records</button>
           </div>
         </div>
         <div class="table-wrap">
-          <table>
+          <table class="records-table">
             <thead>
               <tr>
                 <th>Record ID</th>
-                <th>Source org.</th>
+                <th>Source</th>
                 <th>Outlet</th>
-                <th>Source figure ID</th>
+                <th>Fig. ID</th>
                 <th>Media image</th>
                 <th>Actions</th>
               </tr>
@@ -262,11 +315,9 @@
 
   <template id="fieldCardTemplate">
     <div class="field-card">
-      <div class="field-card-head">
-        <div class="field-card-copy">
-          <label class="field-card-label"></label>
-          <p class="field-card-help"></p>
-        </div>
+      <div class="field-card-copy">
+        <label class="field-card-label"></label>
+        <p class="field-card-help"></p>
       </div>
       <div class="chip-group"></div>
     </div>
@@ -275,11 +326,22 @@
   <div id="imageLightbox" class="lightbox hidden" aria-hidden="true">
     <button id="lightboxCloseBtn" class="lightbox-close" type="button" aria-label="Close image preview">&times;</button>
     <div class="lightbox-stage">
-      <img id="lightboxImage" alt="">
-      <p id="lightboxCaption" class="lightbox-caption"></p>
+      <div class="lightbox-images">
+        <figure class="lightbox-figure">
+          <img id="lightboxImage" alt="">
+          <figcaption id="lightboxCaption" class="lightbox-caption"></figcaption>
+        </figure>
+        <figure class="lightbox-figure hidden" id="lightboxFigureB">
+          <img id="lightboxImageB" alt="">
+          <figcaption id="lightboxCaptionB" class="lightbox-caption"></figcaption>
+        </figure>
+      </div>
     </div>
   </div>
 
+  <div id="toastRoot" class="toast-root" aria-live="polite"></div>
+
+  <script src="app-db.js"></script>
   <script src="app-core.js"></script>
   <script src="app-codebook.js"></script>
   <script src="app-media.js"></script>

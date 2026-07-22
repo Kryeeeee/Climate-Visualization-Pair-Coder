@@ -1,5 +1,5 @@
-﻿const ICON_PHOTO = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/></svg>`;
-const ICON_CHART = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 17l0 -5"/><path d="M12 17l0 -3"/><path d="M15 17l0 -1"/></svg>`;
+const ICON_PHOTO = `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 64 64" fill="currentColor"><circle cx="26.6" cy="8.4" r="1.43" opacity="0.54"/><circle cx="32.0" cy="8.4" r="1.54" opacity="0.58"/><circle cx="37.4" cy="8.4" r="1.43" opacity="0.54"/><circle cx="15.8" cy="13.8" r="1.31" opacity="0.49"/><circle cx="21.2" cy="13.8" r="1.79" opacity="0.68"/><circle cx="26.6" cy="13.8" r="1.99" opacity="0.76"/><circle cx="32.0" cy="13.8" r="2.05" opacity="0.78"/><circle cx="37.4" cy="13.8" r="1.99" opacity="0.76"/><circle cx="42.8" cy="13.8" r="1.79" opacity="0.68"/><circle cx="48.2" cy="13.8" r="1.31" opacity="0.49"/><circle cx="15.8" cy="19.2" r="1.79" opacity="0.68"/><circle cx="21.2" cy="19.2" r="2.11" opacity="0.8"/><circle cx="26.6" cy="19.2" r="2.27" opacity="0.86"/><circle cx="32.0" cy="19.2" r="2.32" opacity="0.88"/><circle cx="37.4" cy="19.2" r="2.27" opacity="0.86"/><circle cx="42.8" cy="19.2" r="2.11" opacity="0.8"/><circle cx="48.2" cy="19.2" r="1.79" opacity="0.68"/><circle cx="10.4" cy="24.6" r="1.43" opacity="0.54"/><circle cx="15.8" cy="24.6" r="1.99" opacity="0.76"/><circle cx="21.2" cy="24.6" r="2.27" opacity="0.86"/><circle cx="26.6" cy="24.6" r="2.41" opacity="0.92"/><circle cx="32.0" cy="24.6" r="2.46" opacity="0.93"/><circle cx="37.4" cy="24.6" r="2.41" opacity="0.92"/><circle cx="42.8" cy="24.6" r="2.27" opacity="0.86"/><circle cx="48.2" cy="24.6" r="1.99" opacity="0.76"/><circle cx="53.6" cy="24.6" r="1.43" opacity="0.54"/><circle cx="10.4" cy="30.0" r="1.54" opacity="0.58"/><circle cx="15.8" cy="30.0" r="2.05" opacity="0.78"/><circle cx="21.2" cy="30.0" r="2.32" opacity="0.88"/><circle cx="26.6" cy="30.0" r="2.46" opacity="0.93"/><circle cx="32.0" cy="30.0" r="2.5" opacity="0.95"/><circle cx="37.4" cy="30.0" r="2.46" opacity="0.93"/><circle cx="42.8" cy="30.0" r="2.32" opacity="0.88"/><circle cx="48.2" cy="30.0" r="2.05" opacity="0.78"/><circle cx="53.6" cy="30.0" r="1.54" opacity="0.58"/><circle cx="10.4" cy="35.4" r="1.43" opacity="0.54"/><circle cx="15.8" cy="35.4" r="1.99" opacity="0.76"/><circle cx="21.2" cy="35.4" r="2.27" opacity="0.86"/><circle cx="26.6" cy="35.4" r="2.41" opacity="0.92"/><circle cx="32.0" cy="35.4" r="2.46" opacity="0.93"/><circle cx="37.4" cy="35.4" r="2.41" opacity="0.92"/><circle cx="42.8" cy="35.4" r="2.27" opacity="0.86"/><circle cx="48.2" cy="35.4" r="1.99" opacity="0.76"/><circle cx="53.6" cy="35.4" r="1.43" opacity="0.54"/><circle cx="15.8" cy="40.8" r="1.79" opacity="0.68"/><circle cx="21.2" cy="40.8" r="2.11" opacity="0.8"/><circle cx="26.6" cy="40.8" r="2.27" opacity="0.86"/><circle cx="32.0" cy="40.8" r="2.32" opacity="0.88"/><circle cx="37.4" cy="40.8" r="2.27" opacity="0.86"/><circle cx="42.8" cy="40.8" r="2.11" opacity="0.8"/><circle cx="48.2" cy="40.8" r="1.79" opacity="0.68"/><circle cx="15.8" cy="46.2" r="1.31" opacity="0.49"/><circle cx="21.2" cy="46.2" r="1.79" opacity="0.68"/><circle cx="26.6" cy="46.2" r="1.99" opacity="0.76"/><circle cx="32.0" cy="46.2" r="2.05" opacity="0.78"/><circle cx="37.4" cy="46.2" r="1.99" opacity="0.76"/><circle cx="42.8" cy="46.2" r="1.79" opacity="0.68"/><circle cx="48.2" cy="46.2" r="1.31" opacity="0.49"/><circle cx="26.6" cy="51.6" r="1.43" opacity="0.54"/><circle cx="32.0" cy="51.6" r="1.54" opacity="0.58"/><circle cx="37.4" cy="51.6" r="1.43" opacity="0.54"/><ellipse cx="32" cy="30" rx="24" ry="9.5" fill="none" stroke="currentColor" stroke-width="1" opacity="0.35"/></svg>`;
+const ICON_CHART = `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 64 64" fill="currentColor"><circle cx="14" cy="54.0" r="2.3" opacity="0.95"/><circle cx="14" cy="48.4" r="2.07" opacity="0.81"/><circle cx="14" cy="42.8" r="1.85" opacity="0.67"/><circle cx="14" cy="37.2" r="1.62" opacity="0.54"/><circle cx="14" cy="31.6" r="1.4" opacity="0.4"/><circle cx="26" cy="54.0" r="2.3" opacity="0.95"/><circle cx="26" cy="48.4" r="1.85" opacity="0.67"/><circle cx="26" cy="42.8" r="1.4" opacity="0.4"/><circle cx="38" cy="54.0" r="2.3" opacity="0.95"/><circle cx="38" cy="48.4" r="2.15" opacity="0.86"/><circle cx="38" cy="42.8" r="2.0" opacity="0.77"/><circle cx="38" cy="37.2" r="1.85" opacity="0.67"/><circle cx="38" cy="31.6" r="1.7" opacity="0.58"/><circle cx="38" cy="26.0" r="1.55" opacity="0.49"/><circle cx="38" cy="20.4" r="1.4" opacity="0.4"/><circle cx="50" cy="54.0" r="2.3" opacity="0.95"/><circle cx="50" cy="48.4" r="2.0" opacity="0.77"/><circle cx="50" cy="42.8" r="1.7" opacity="0.58"/><circle cx="50" cy="37.2" r="1.4" opacity="0.4"/><circle cx="8" cy="59" r="0.9" opacity="0.4"/><circle cx="13" cy="59" r="0.9" opacity="0.4"/><circle cx="18" cy="59" r="0.9" opacity="0.4"/><circle cx="23" cy="59" r="0.9" opacity="0.4"/><circle cx="28" cy="59" r="0.9" opacity="0.4"/><circle cx="33" cy="59" r="0.9" opacity="0.4"/><circle cx="38" cy="59" r="0.9" opacity="0.4"/><circle cx="43" cy="59" r="0.9" opacity="0.4"/><circle cx="48" cy="59" r="0.9" opacity="0.4"/><circle cx="53" cy="59" r="0.9" opacity="0.4"/></svg>`;
 
 function renderEmptyPreview(target, title, hint, icon) {
   target.innerHTML = `<div class="preview-empty"><div class="preview-empty-icon">${icon}</div><div><p class="preview-empty-title">${title}</p><p class="preview-empty-hint">${hint}</p></div></div>`;
@@ -77,7 +77,6 @@ function renderPreviewFromPath(target, filePath, emptyText) {
 function handleCsvImport(event) {
   const file = event.target.files[0];
   if (!file) return;
-  updateImportControls();
   const reader = new FileReader();
   reader.onload = () => {
     const parsedRows = parseCsv(reader.result);
@@ -92,6 +91,10 @@ function handleCsvImport(event) {
     populateMediaCsvSelect();
     populateImportedMediaImageFileSelect();
     updateImportControls();
+    showToast(`Imported ${importedRows.length} media image rows from CSV.`, "success");
+    if (importedRows.length && importedMediaImageFileList.length) {
+      setImportGroupCollapsed(true);
+    }
   };
   reader.readAsText(file);
 }
@@ -100,7 +103,6 @@ function handleMediaImageFilesImport(event) {
   const files = Array.from(event.target.files || [])
     .filter(isImageFile)
     .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name));
-  updateImportControls();
   importedMediaImageFileList = files;
   importedMediaImageFiles = new Map();
   importedMediaImageDataUrls = new Map();
@@ -112,18 +114,26 @@ function handleMediaImageFilesImport(event) {
     });
   });
   populateImportedMediaImageFileSelect();
+  updateImportControls();
   if (currentMediaRow) {
     hydrateMediaPreviewFromImportedFile(currentMediaRow);
   }
   const matchedCount = importedRows.filter((row) => findImportedMediaImageFile(row)).length;
   const suffix = importedRows.length ? ` Matched ${matchedCount} of ${importedRows.length} imported CSV rows.` : "";
-  alert(`Imported ${files.length} media image file(s) for export.${suffix}`);
+  showToast(`Imported ${files.length} media image file(s).${suffix}`, "success");
+  if (importedRows.length && importedMediaImageFileList.length) {
+    setImportGroupCollapsed(true);
+  }
 }
 
 function updateImportControls() {
   elements.csvInput.disabled = false;
   elements.mediaImageFilesInput.disabled = false;
   elements.mediaImageFileSelect.disabled = Boolean(importedRows.length) || !importedMediaImageFileList.length;
+  elements.manualMediaRow.classList.toggle(
+    "hidden",
+    !(importedMediaImageFileList.length && !importedRows.length)
+  );
   updateImportedMediaFileNavigation();
   syncMediaMetadataEditability();
 }
@@ -143,32 +153,18 @@ function syncMediaUpdatedDateState() {
   elements.mediaUpdatedDateInput.classList.toggle("empty-value", !elements.mediaUpdatedDateInput.value.trim());
 }
 
-function formatDisplayDate(value) {
+function formatDateForDisplay(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
-  const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  const isoMatch = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (isoMatch) {
-    return `${isoMatch[2].padStart(2, "0")}-${isoMatch[3].padStart(2, "0")}-${isoMatch[1]}`;
+    return `${isoMatch[1]}/${isoMatch[2].padStart(2, "0")}/${isoMatch[3].padStart(2, "0")}`;
   }
-  const slashIsoMatch = raw.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
-  if (slashIsoMatch) {
-    return `${slashIsoMatch[2].padStart(2, "0")}-${slashIsoMatch[3].padStart(2, "0")}-${slashIsoMatch[1]}`;
-  }
-  const displayMatch = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-  if (displayMatch) {
-    return `${displayMatch[1].padStart(2, "0")}-${displayMatch[2].padStart(2, "0")}-${displayMatch[3]}`;
+  const monthFirstMatch = raw.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (monthFirstMatch) {
+    return `${monthFirstMatch[3]}/${monthFirstMatch[1].padStart(2, "0")}/${monthFirstMatch[2].padStart(2, "0")}`;
   }
   return raw;
-}
-
-function normalizeDateInput(input) {
-  input.value = formatDisplayDate(input.value);
-  if (input === elements.mediaPublicationDateInput) {
-    updateRecordId();
-  }
-  if (input === elements.mediaUpdatedDateInput) {
-    syncMediaUpdatedDateState();
-  }
 }
 
 function populateImportedMediaImageFileSelect() {
@@ -194,8 +190,13 @@ function populateImportedMediaImageFileSelect() {
   updateImportedMediaFileNavigation();
 }
 
-async function handleImportedMediaImageSelection() {
+async function handleImportedMediaImageSelection({ skipDirtyCheck = false } = {}) {
   const selectedValue = elements.mediaImageFileSelect.value;
+  if (!skipDirtyCheck && selectedValue !== lastManualMediaIndex && !confirmDiscardIfDirty()) {
+    elements.mediaImageFileSelect.value = lastManualMediaIndex;
+    return;
+  }
+  lastManualMediaIndex = selectedValue;
   const selectedIndex = selectedValue === "" ? -1 : Number(selectedValue);
   const file = selectedIndex >= 0 ? importedMediaImageFileList[selectedIndex] : null;
   if (!file) {
@@ -225,7 +226,9 @@ async function handleImportedMediaImageSelection() {
     currentFileData.media_image = null;
   }
   tryAutoMatchMediaFile(file);
+  updateRecordId();
   updateImportedMediaFileNavigation();
+  markFormClean();
 }
 
 function detectSourceGroupFromFilename(filename) {
@@ -284,7 +287,7 @@ function parseCsv(csvText) {
   if (!rows.length) return [];
   const headers = rows[0].map((value, index) => {
     const trimmed = value.trim();
-    return index === 0 ? trimmed.replace(/^\uFEFF/, "") : trimmed;
+    return index === 0 ? trimmed.replace(/^﻿/, "") : trimmed;
   });
   return rows.slice(1)
     .filter((values) => values.some((value) => value.trim() !== ""))
@@ -319,18 +322,36 @@ function populateMediaCsvSelect() {
     options.push(`<option value="${row.__rowIndex}">${escapeHtml(label)}</option>`);
   });
   elements.mediaCsvSelect.innerHTML = options.join("");
-  elements.mediaCsvSummary.textContent = importedRows.length
-    ? `${getNavigableRows().length} active rows available from ${importedRows.length} imported rows.`
-    : "No media image row selected.";
   updateNavigationButtons();
+  updateBatchProgress();
 }
 
-function handleMediaRowSelection({ resetCoding = false } = {}) {
+function updateBatchProgress() {
+  const wrap = document.getElementById("batchProgress");
+  if (!wrap) return;
+  const rows = getNavigableRows();
+  wrap.classList.toggle("hidden", !rows.length);
+  if (!rows.length) return;
+  const done = rows.filter((row) => getRowState(row).disposition === "completed").length;
+  document.getElementById("batchProgressFill").style.width = `${Math.round((done / rows.length) * 100)}%`;
+  document.getElementById("batchProgressText").textContent = `${done} / ${rows.length} coded`;
+}
+
+function handleMediaRowSelection({ resetCoding = false, skipDirtyCheck = false } = {}) {
   const selectedIndex = elements.mediaCsvSelect.value;
+  if (
+    resetCoding
+    && !skipDirtyCheck
+    && String(currentMediaRow?.__rowIndex ?? "") !== selectedIndex
+    && !confirmDiscardIfDirty()
+  ) {
+    elements.mediaCsvSelect.value = currentMediaRow?.__rowIndex ?? "";
+    return;
+  }
   const selectedRow = importedRows.find((row) => row.__rowIndex === selectedIndex) || null;
   const savedRecord = selectedRow ? findSavedRecordForMediaRow(selectedRow) : null;
   if (savedRecord) {
-    loadRecordIntoForm(savedRecord.record_id);
+    loadRecordIntoForm(savedRecord.record_id, { skipDirtyCheck: true });
     return;
   }
   if (resetCoding) {
@@ -339,13 +360,22 @@ function handleMediaRowSelection({ resetCoding = false } = {}) {
   currentMediaRow = selectedRow;
   applyMediaRow(currentMediaRow);
   updateNavigationButtons();
+  // Only reset the dirty baseline when coding was actually cleared for a fresh
+  // row; status-only refreshes must keep protecting in-progress coding.
+  if (resetCoding) markFormClean();
 }
 
 function clearCodingStateForMediaRowChange() {
   activeLoadedRecord = null;
   document.getElementById("source_organization").value = "";
+  document.getElementById("source_report_cycle").value = "";
+  document.getElementById("source_working_group").value = "";
   document.getElementById("source_figure_id").value = "";
   document.getElementById("source_figure_url").value = "";
+  elements.additionalSourcesInput.value = "";
+  autoResizeTextarea(elements.additionalSourcesInput);
+  elements.sourceNotesInput.value = "";
+  autoResizeTextarea(elements.sourceNotesInput);
   setCodingConfidence("");
   elements.coderNotesInput.value = "";
   autoResizeTextarea(elements.coderNotesInput);
@@ -357,6 +387,7 @@ function clearCodingStateForMediaRowChange() {
   elements.sourceImageInput.value = "";
   syncFilePickerName(elements.sourceImageInput);
   elements.mediaImageFileSelect.value = "";
+  lastManualMediaIndex = "";
   renderPreview(elements.mediaPreview, null);
   renderPreview(elements.sourcePreview, null);
 
@@ -383,7 +414,6 @@ function applyMediaRow(row) {
     });
     syncMediaArticleLink("");
     syncMediaMetadataEditability();
-    elements.mediaCsvSummary.textContent = "No media image row selected.";
     if (!currentFiles.media_image) {
       renderPreview(elements.mediaPreview, null);
     }
@@ -395,23 +425,10 @@ function applyMediaRow(row) {
   document.getElementById("media_outlet").value = row.newspaper || row.media_outlet || "";
   document.getElementById("media_article_title").value = row.article_title || "";
   document.getElementById("media_article_url").value = row.article_url || "";
-  document.getElementById("media_publication_date").value = formatDisplayDate(row.published_date);
-  document.getElementById("media_updated_date").value = formatDisplayDate(row.updated_date);
+  document.getElementById("media_publication_date").value = formatDateForDisplay(row.published_date);
+  document.getElementById("media_updated_date").value = formatDateForDisplay(row.updated_date);
   syncMediaArticleLink(row.article_url || "");
   syncMediaMetadataEditability();
-  const state = getRowState(row);
-  const outlet = escapeHtml(row.newspaper || row.media_outlet || "");
-  const date = escapeHtml(formatDisplayDate(row.published_date));
-  const filename = escapeHtml(extractFilename(row.local_image_path || ""));
-  const badges = [
-    outlet ? `<span class="summary-badge summary-badge--outlet">${outlet}</span>` : "",
-    date ? `<span class="summary-badge">${date}</span>` : "",
-    filename ? `<span class="summary-badge">${filename}</span>` : "",
-    state.source_unclear ? `<span class="summary-badge summary-badge--warn">Source unclear</span>` : "",
-    state.disposition === "completed" ? `<span class="summary-badge summary-badge--done">Done — ${escapeHtml(state.completed_by || "")}</span>` : "",
-    state.disposition === "not_important" ? `<span class="summary-badge summary-badge--muted">Not important</span>` : "",
-  ].filter(Boolean).join("");
-  elements.mediaCsvSummary.innerHTML = `<div class="summary-badges">${badges || "—"}</div>`;
   if (!currentFiles.media_image) {
     renderPreviewFromPath(elements.mediaPreview, row.local_image_path || "", "No media image selected");
     hydrateMediaPreviewFromImportedFile(row);
@@ -462,23 +479,25 @@ function findSavedRecordForMediaRow(row) {
 function moveMediaSelection(direction) {
   const rows = getNavigableRows();
   if (!rows.length) return;
+  if (!confirmDiscardIfDirty()) return;
   const currentIndex = rows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
   const nextIndex = currentIndex === -1
     ? (direction > 0 ? 0 : rows.length - 1)
     : Math.max(0, Math.min(rows.length - 1, currentIndex + direction));
   elements.mediaCsvSelect.value = rows[nextIndex].__rowIndex;
-  handleMediaRowSelection({ resetCoding: true });
+  handleMediaRowSelection({ resetCoding: true, skipDirtyCheck: true });
 }
 
 function moveImportedMediaFileSelection(direction) {
   if (importedRows.length || !importedMediaImageFileList.length) return;
+  if (!confirmDiscardIfDirty()) return;
   const selectedValue = elements.mediaImageFileSelect.value;
   const currentIndex = selectedValue === "" ? -1 : Number(selectedValue);
   const nextIndex = currentIndex === -1
     ? (direction > 0 ? 0 : importedMediaImageFileList.length - 1)
     : Math.max(0, Math.min(importedMediaImageFileList.length - 1, currentIndex + direction));
   elements.mediaImageFileSelect.value = String(nextIndex);
-  handleImportedMediaImageSelection();
+  handleImportedMediaImageSelection({ skipDirtyCheck: true });
 }
 
 function updateNavigationButtons() {
@@ -487,10 +506,10 @@ function updateNavigationButtons() {
   const currentIndex = rows.findIndex((row) => row.__rowIndex === elements.mediaCsvSelect.value);
   elements.prevRowBtn.disabled = !hasRows || currentIndex <= 0;
   elements.nextRowBtn.disabled = !hasRows || currentIndex === -1 || currentIndex >= rows.length - 1;
-  elements.saveNextBtn.disabled = false;
   elements.markNotImportantBtn.disabled = !hasRows || currentIndex === -1;
   elements.markSourceUnclearBtn.disabled = !hasRows || currentIndex === -1;
   elements.deleteRowBtn.disabled = !hasRows || currentIndex === -1;
+  elements.undoRowStatusBtn.disabled = !lastRowDispositionChange;
   const displayIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
   elements.mediaRowProgress.textContent = displayIndex > 0 ? `${displayIndex} of ${rows.length}` : `– of ${rows.length}`;
 }
@@ -508,4 +527,3 @@ function updateImportedMediaFileNavigation() {
   const displayIndex = validCurrentIndex ? currentIndex + 1 : 0;
   elements.mediaFileProgress.textContent = displayIndex > 0 ? `${displayIndex} of ${importedMediaImageFileList.length}` : `– of ${importedMediaImageFileList.length}`;
 }
-

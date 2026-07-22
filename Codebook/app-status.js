@@ -91,9 +91,18 @@ function setCurrentRowDisposition(disposition) {
     return;
   }
   const currentRowIndex = currentMediaRow.__rowIndex;
+  const group = currentMediaRow.__sourceGroup || "other";
+  const previousState = rowState[group][currentMediaRow.__rowKey]
+    ? { ...rowState[group][currentMediaRow.__rowKey] }
+    : null;
+  lastRowDispositionChange = {
+    group,
+    rowKey: currentMediaRow.__rowKey,
+    rowIndex: currentRowIndex,
+    previousState,
+  };
   const rowsBefore = getNavigableRows();
   const currentPosition = rowsBefore.findIndex((row) => row.__rowIndex === currentRowIndex);
-  const group = currentMediaRow.__sourceGroup || "other";
   rowState[group][currentMediaRow.__rowKey] = {
     ...(rowState[group][currentMediaRow.__rowKey] || {}),
     disposition,
@@ -117,7 +126,23 @@ function setCurrentRowDisposition(disposition) {
     : Math.min(currentPosition, rows.length - 1);
   const nextRow = rows[nextIndex] || rows[0];
   elements.mediaCsvSelect.value = nextRow.__rowIndex;
-  handleMediaRowSelection({ resetCoding: true });
+  handleMediaRowSelection({ resetCoding: true, skipDirtyCheck: true });
+}
+
+function undoLastRowDisposition() {
+  if (!lastRowDispositionChange) return;
+  const { group, rowKey, rowIndex, previousState } = lastRowDispositionChange;
+  if (previousState) {
+    rowState[group][rowKey] = previousState;
+  } else {
+    delete rowState[group][rowKey];
+  }
+  persistRowState();
+  populateMediaCsvSelect();
+  elements.mediaCsvSelect.value = rowIndex;
+  handleMediaRowSelection({ resetCoding: true, skipDirtyCheck: true });
+  lastRowDispositionChange = null;
+  updateNavigationButtons();
 }
 
 function clearCompletedRowStates() {
@@ -149,7 +174,7 @@ function handleRowStatusImport(event) {
   reader.onload = () => {
     const importedState = parseRowStatusWorkbook(reader.result);
     if (!importedState) {
-      alert("Could not import status file. Please use the exported status.xls file.");
+      showToast("Could not import status file. Please use the exported status.xls file.", "error");
       event.target.value = "";
       syncFilePickerName(event.target);
       return;
@@ -173,7 +198,7 @@ function handleRowStatusImport(event) {
         applyMediaRow(null);
       }
     }
-    alert("Row status file imported.");
+    showToast("Row status file imported.", "success");
   };
   reader.readAsText(file);
 }
