@@ -16,7 +16,6 @@ const titleFunctionOptionHelp = {
   opinion: "Evaluative stance (\"We are failing on climate\").",
   alarming: "Threat or urgency language.",
   solution_oriented: "Emphasizes actions or pathways.",
-  not_applicable: "No title / subtitle.",
 };
 
 const subtitleFunctionOptionHelp = {
@@ -28,7 +27,7 @@ const codebookSections = [
   {
     key: "information_selection",
     title: "Information selection",
-    description: "What information survives the adaptation.",
+    description: "Which information keeps in adaptation?",
     fields: [
       {
         id: "data_variables_scope",
@@ -36,9 +35,6 @@ const codebookSections = [
         help: "Compare which data series appear in both versions.",
         options: ["same", "reduced", "expanded", "reconfigured"],
         optionHelp: {
-          same: "Same set of series.",
-          reduced: "Series dropped (4 scenarios \u2192 1).",
-          expanded: "Series added (observations overlaid).",
           reconfigured: "Added and removed, or recombined.",
         },
         extraInputs: [
@@ -49,13 +45,10 @@ const codebookSections = [
       {
         id: "spatial_scope",
         label: "Spatial scope",
+        help: "Geographic coverage and resolution (region, extent, detail).",
         options: ["same", "reduced", "expanded", "reconfigured", "not_applicable"],
         optionHelp: {
-          same: "Same coverage and resolution.",
-          reduced: "Narrowed or coarsened (global \u2192 Europe).",
-          expanded: "Widened, or finer detail added.",
           reconfigured: "Region changed or re-projected.",
-          not_applicable: "No spatial dimension (e.g. global-mean series).",
         },
         extraInputs: [
           { id: "spatial_scope_details", label: "Spatial scope details", type: "textarea", placeholder: "e.g. global coverage reduced to Europe", showWhen: ["reduced", "expanded", "reconfigured"] },
@@ -64,13 +57,10 @@ const codebookSections = [
       {
         id: "temporal_scope",
         label: "Temporal scope",
+        help: "Time range and resolution (period covered, time steps).",
         options: ["same", "reduced", "expanded", "reconfigured", "not_applicable"],
         optionHelp: {
-          same: "Same range and resolution.",
-          reduced: "Shortened or coarsened (1850\u20132100 \u2192 2000\u20132050).",
-          expanded: "Extended, or finer resolution.",
           reconfigured: "Period shifted or restructured.",
-          not_applicable: "No time dimension (single-date map).",
         },
         extraInputs: [
           { id: "temporal_scope_details", label: "Temporal scope details", type: "textarea", placeholder: "e.g. 1850-2100 reduced to 2000-2050, or monthly data averaged by year", showWhen: ["reduced", "expanded", "reconfigured"] },
@@ -79,19 +69,16 @@ const codebookSections = [
       {
         id: "data_aggregation_transformation",
         label: "Data transformation",
-        help: "How values were recalculated. None and N/A exclude the others.",
+        help: "How the adaptation recalculates source values.",
         multiSelect: true,
-        exclusiveOptions: ["none"],
-        options: ["none", "averaged", "aggregated", "smoothed", "normalized", "indexed", "other", "not_applicable"],
+        options: ["averaged", "aggregated", "smoothed", "normalized", "indexed", "other", "not_applicable"],
         optionHelp: {
-          none: "Re-plotted as-is.",
-          averaged: "Averaged (monthly \u2192 annual).",
-          aggregated: "Grouped (countries \u2192 regions).",
+          averaged: "Averaged (monthly → annual).",
+          aggregated: "Grouped (countries → regions).",
           smoothed: "Rolling mean or fitted trend.",
           normalized: "Relative to a base (per capita, %).",
           indexed: "Re-based (baseline = 100).",
-          other: "Other \u2014 describe below.",
-          not_applicable: "Underlying data not discernible.",
+          not_applicable: "No recalculation, or not discernible.",
         },
         extraInputs: [
           { id: "data_aggregation_description", label: "Describe data transformation", type: "textarea", placeholder: "e.g. monthly values averaged into annual values", showWhen: ["averaged", "aggregated", "smoothed", "normalized", "indexed", "other"], requiredWhen: ["averaged", "aggregated", "smoothed", "normalized", "indexed", "other"] },
@@ -100,21 +87,17 @@ const codebookSections = [
       {
         id: "uncertainty_visibility",
         label: "Uncertainty visibility",
-        help: "How visible uncertainty (ranges, scenarios, caveats) remains.",
+        help: "How visible uncertainty (ranges / scenarios / caveats) remains.",
         options: ["same", "simplified", "removed", "added", "not_applicable"],
         optionHelp: {
-          same: "All preserved.",
-          simplified: "Shown but coarser (3 ranges \u2192 1 band).",
-          removed: "None remains.",
-          added: "New in the adaptation.",
-          not_applicable: "Source shows no uncertainty.",
+          simplified: "Shown but coarser (3 ranges → 1 band).",
         },
       },
       {
         id: "uncertainty_elements",
         label: "Uncertainty elements affected",
-        help: "N/A when Uncertainty visibility is Same or N/A.",
         multiSelect: true,
+        showWhenField: { fieldId: "uncertainty_visibility", values: ["simplified", "removed", "added"] },
         options: ["confidence_interval", "scenario_range", "model_spread", "error_bars", "caveat_text", "likelihood_language", "other", "not_applicable"],
         optionHelp: {
           confidence_interval: "Shaded bands or numeric intervals.",
@@ -123,8 +106,6 @@ const codebookSections = [
           error_bars: "Error bars or whiskers.",
           caveat_text: "Written caveats or footnotes.",
           likelihood_language: "IPCC terms (\"likely\", \"virtually certain\").",
-          other: "Other \u2014 describe below.",
-          not_applicable: "Uncertainty visibility is Same or N/A.",
         },
         extraInputs: [
           { id: "uncertainty_elements_other", label: "Describe other uncertainty element", type: "textarea", placeholder: "Describe the uncertainty element.", showWhen: ["other"], requiredWhen: ["other"] },
@@ -135,8 +116,7 @@ const codebookSections = [
         label: "Source attribution visibility",
         options: ["not_visible", "visible"],
         optionHelp: {
-          not_visible: "No source named in or around the image.",
-          visible: "Source named in image, caption, or credit.",
+          not_visible: "No source named in the image or context.",
         },
         extraInputs: [
           { id: "source_attribution_type", label: "Visible source attribution type", type: "choice", options: ["source_name_only", "full_source_link", "article_text_link"], showWhen: ["visible"], requiredWhen: ["visible"] },
@@ -147,16 +127,12 @@ const codebookSections = [
   {
     key: "visual_form",
     title: "Visual form",
-    description: "How the data is visually re-presented.",
+    description: "How the data is visually re-presented?",
     fields: [
       {
         id: "chart_type_relation",
         label: "Chart type relation",
         options: ["same", "modified"],
-        optionHelp: {
-          same: "Same chart type, even if restyled.",
-          modified: "Type changed (multi-panel lines \u2192 single bars).",
-        },
         extraInputs: [
           { id: "chart_type_from", label: "From chart type", type: "chartType", options: chartTypeOptions, showWhen: ["modified"], requiredWhen: ["modified"] },
           { id: "chart_type_to", label: "To chart type", type: "chartType", options: chartTypeOptions, showWhen: ["modified"], requiredWhen: ["modified"] },
@@ -166,12 +142,8 @@ const codebookSections = [
       {
         id: "panel_count",
         label: "Panel count",
+        help: "Panels are separate sub-plots (facets) within one figure.",
         options: ["same", "reduced", "increased"],
-        optionHelp: {
-          same: "Same number of panels.",
-          reduced: "Panels merged or dropped.",
-          increased: "Panels added or split.",
-        },
         extraInputs: [
           { id: "panel_count_source", label: "Panels in source", type: "number", placeholder: "0", showWhen: ["reduced", "increased"] },
           { id: "panel_count_media", label: "Panels in adaptation", type: "number", placeholder: "0", showWhen: ["reduced", "increased"] },
@@ -182,28 +154,23 @@ const codebookSections = [
         label: "Visual density",
         options: ["denser", "similar", "simpler"],
         optionHelp: {
-          denser: "More marks, labels, annotation.",
-          similar: "About the same.",
+          denser: "More marks / labels / annotation.",
           simpler: "Visibly decluttered.",
         },
       },
       {
         id: "layout_reordering",
         label: "Layout reordering",
+        help: "Whether panels / legends / labels / annotations are re-arranged relative to the source.",
         options: ["yes", "no"],
-        optionHelp: {
-          yes: "Components moved or re-ordered.",
-          no: "Arrangement preserved.",
-        },
       },
       {
         id: "axes_scales",
         label: "Axes & scales",
+        help: "Axis ranges, reference baselines, scale types (linear / log), units.",
         options: ["same", "changed", "not_applicable"],
         optionHelp: {
-          same: "Ranges, baselines, scales, units preserved.",
-          changed: "Range, baseline, scale type, or units differ (incl. truncation).",
-          not_applicable: "No axes (maps, pictograms).",
+          changed: "Range / baseline / scale type / units differ (incl. truncation).",
         },
         extraInputs: [
           { id: "axes_scales_description", label: "Describe axes / scale change", type: "textarea", placeholder: "e.g. y-axis truncated; anomaly baseline changed from 1850-1900 to 1961-1990; log scale replaced with linear", showWhen: ["changed"], requiredWhen: ["changed"] },
@@ -212,14 +179,8 @@ const codebookSections = [
       {
         id: "legend",
         label: "Legend",
+        help: "The key mapping colors / symbols to data series.",
         options: ["same", "added", "removed", "changed", "not_applicable"],
-        optionHelp: {
-          same: "Unchanged, or absent in both.",
-          added: "Added by the adaptation.",
-          removed: "Dropped (e.g. replaced by direct labels).",
-          changed: "Content, order, or form differs.",
-          not_applicable: "Irrelevant to this figure type.",
-        },
         extraInputs: [
           { id: "legend_description", label: "Describe legend change", type: "textarea", placeholder: "Briefly describe the legend change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
         ],
@@ -227,15 +188,8 @@ const codebookSections = [
       {
         id: "visual_emphasis",
         label: "Visual emphasis",
-        help: "Highlighting, arrows, spotlights, contrast cues.",
+        help: "Highlighting / arrows / spotlights / contrast cues.",
         options: ["same", "added", "removed", "changed", "not_applicable"],
-        optionHelp: {
-          same: "Unchanged, or absent in both.",
-          added: "New highlights, arrows, callouts.",
-          removed: "Source cues dropped.",
-          changed: "Redirected or restyled.",
-          not_applicable: "Irrelevant here.",
-        },
         extraInputs: [
           { id: "visual_emphasis_description", label: "Describe emphasis change", type: "textarea", placeholder: "Briefly describe the emphasis change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
         ],
@@ -243,28 +197,21 @@ const codebookSections = [
       {
         id: "color_function",
         label: "Color function",
-        help: "Color's communicative role. Same and N/A exclude the others.",
+        help: "Color's communicative role.",
         multiSelect: true,
         exclusiveOptions: ["same"],
         options: ["same", "more_categorical", "more_sequential", "more_affective_warning", "more_muted", "not_applicable"],
         optionHelp: {
-          same: "Same role.",
           more_categorical: "More discrete-category coding.",
           more_sequential: "More ordered-magnitude coding.",
           more_affective_warning: "More emotional signaling (alarm reds).",
           more_muted: "Desaturated, softened.",
-          not_applicable: "Color not meaningful in either.",
         },
       },
       {
         id: "color_palette",
         label: "Color palette",
         options: ["same", "changed", "not_applicable"],
-        optionHelp: {
-          same: "Palette preserved.",
-          changed: "Palette differs \u2014 describe below.",
-          not_applicable: "Both monochrome.",
-        },
         extraInputs: [
           { id: "color_palette_description", label: "How palette changed", type: "textarea", placeholder: "e.g. neutral blue palette changed to red warning palette", showWhen: ["changed"], requiredWhen: ["changed"] },
         ],
@@ -272,14 +219,10 @@ const codebookSections = [
       {
         id: "visual_mapping",
         label: "Visual mapping",
-        help: "How variables map to channels (position, length, color, size).",
+        help: "How variables map to channels (position / length / color / size).",
         options: ["same", "added", "removed", "changed", "not_applicable"],
         optionHelp: {
-          same: "Same mappings.",
-          added: "New mapping introduced.",
-          removed: "A mapping dropped.",
-          changed: "Different channel (color scale \u2192 bar length).",
-          not_applicable: "Not comparable.",
+          changed: "Different channel (color scale → bar length).",
         },
         extraInputs: [
           { id: "visual_mapping_description", label: "Describe mapping change", type: "textarea", placeholder: "Briefly describe the mapping change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
@@ -288,31 +231,16 @@ const codebookSections = [
       {
         id: "annotations",
         label: "Annotations",
-        help: "In-chart text, markers, reference lines.",
+        help: "In-chart text / markers / reference lines.",
         options: ["same", "added", "removed", "changed", "not_applicable"],
-        optionHelp: {
-          same: "Unchanged, or absent in both.",
-          added: "New labels, markers, reference lines.",
-          removed: "Source annotations dropped.",
-          changed: "Reworded, moved, or restyled.",
-          not_applicable: "Irrelevant here.",
-        },
         extraInputs: [
           { id: "annotations_description", label: "Describe annotation change", type: "textarea", placeholder: "Briefly describe the annotation change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
         ],
       },
       {
         id: "external_notes_explanations",
-        label: "Notes / explanations outside the visualization",
-        help: "Explanatory text outside the chart area.",
+        label: "Notes outside the dataviz",
         options: ["same", "added", "removed", "changed", "not_applicable"],
-        optionHelp: {
-          same: "Unchanged, or absent in both.",
-          added: "New text added.",
-          removed: "Dropped.",
-          changed: "Reworded or restructured.",
-          not_applicable: "Irrelevant here.",
-        },
         extraInputs: [
           { id: "external_notes_explanations_description", label: "Describe notes change", type: "textarea", placeholder: "Briefly describe the note change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
         ],
@@ -322,13 +250,6 @@ const codebookSections = [
         label: "Decorations",
         help: "Illustrative, non-data elements.",
         options: ["same", "added", "removed", "changed", "not_applicable"],
-        optionHelp: {
-          same: "Unchanged, or absent in both.",
-          added: "Illustrations, icons, photos added.",
-          removed: "Dropped.",
-          changed: "Replaced or restyled.",
-          not_applicable: "Irrelevant here.",
-        },
         extraInputs: [
           { id: "decorations_description", label: "Describe decoration change", type: "textarea", placeholder: "Briefly describe the decoration change.", showWhen: ["added", "removed", "changed"] },
         ],
@@ -338,29 +259,17 @@ const codebookSections = [
   {
     key: "narrative_guidance",
     title: "Narrative guidance",
-    description: "How much verbal framing is added.",
+    description: "How much verbal framing is added?",
     fields: [
       {
         id: "title_word_count_change",
         label: "Title word count",
         options: ["fewer", "same", "more", "not_applicable"],
-        optionHelp: {
-          fewer: "Media title shorter.",
-          same: "About the same.",
-          more: "Media title longer.",
-          not_applicable: "A title is missing.",
-        },
       },
       {
         id: "subtitle_word_count_change",
         label: "Subtitle word count",
         options: ["fewer", "same", "more", "not_applicable"],
-        optionHelp: {
-          fewer: "Media subtitle shorter.",
-          same: "About the same.",
-          more: "Media subtitle longer.",
-          not_applicable: "A subtitle / caption is missing.",
-        },
       },
       {
         id: "media_title_function",
@@ -373,7 +282,6 @@ const codebookSections = [
       {
         id: "scientific_title_function",
         label: "Scientific title function",
-        help: "How the source figure's title frames it.",
         multiSelect: true,
         options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "not_applicable"],
         optionHelp: titleFunctionOptionHelp,
@@ -381,7 +289,7 @@ const codebookSections = [
       {
         id: "media_subtitle_function",
         label: "Media subtitle function",
-        help: "Subtitle, deck, or text attached to the visual.",
+        help: "Subtitle / deck / text attached to the visual.",
         multiSelect: true,
         options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "source_method", "not_applicable"],
         optionHelp: subtitleFunctionOptionHelp,
@@ -389,7 +297,6 @@ const codebookSections = [
       {
         id: "scientific_subtitle_function",
         label: "Scientific subtitle function",
-        help: "Caption or methods text on the source figure.",
         multiSelect: true,
         options: ["descriptive", "explanation", "interpretation", "takeaway", "opinion", "alarming", "solution_oriented", "source_method", "not_applicable"],
         optionHelp: subtitleFunctionOptionHelp,
@@ -400,7 +307,6 @@ const codebookSections = [
         help: "The dominant relation to the source figure's takeaway.",
         options: ["consistent", "narrowed", "amplified", "reframed"],
         optionHelp: {
-          consistent: "Same core claim.",
           narrowed: "Only a subset survives.",
           amplified: "Stronger, more dramatic claim.",
           reframed: "Different emphasis or conclusion.",
@@ -420,7 +326,6 @@ const codebookSections = [
           responsibility_focused: "Causes, blame, duty.",
           solution_focused: "Solutions, progress, pathways.",
           conflict_focused: "Disagreement, political conflict.",
-          other: "Not listed \u2014 describe below.",
         },
         extraInputs: [
           { id: "narrative_frame_other", label: "Describe other frame", type: "textarea", placeholder: "Describe the dominant frame.", showWhen: ["other"], requiredWhen: ["other"] },
@@ -446,7 +351,6 @@ const metadataFields = [
   "source_figure_id",
   "source_figure_url",
   "additional_sources",
-  "source_notes",
   "media_outlet",
   ...mediaMetadataFields,
   "coding_confidence",
@@ -459,7 +363,6 @@ const elements = {
   sourceOrganizationInput: document.getElementById("source_organization"),
   sourceFigureInput: document.getElementById("source_figure_id"),
   additionalSourcesInput: document.getElementById("additional_sources"),
-  sourceNotesInput: document.getElementById("source_notes"),
   generateSourceFigureIdBtn: document.getElementById("generateSourceFigureIdBtn"),
   coderNotesInput: document.getElementById("coder_notes"),
   mediaOutletInput: document.getElementById("media_outlet"),
@@ -539,7 +442,6 @@ async function init() {
   initFilePickerLabels();
   elements.coderNotesInput.addEventListener("input", () => autoResizeTextarea(elements.coderNotesInput));
   elements.additionalSourcesInput.addEventListener("input", () => autoResizeTextarea(elements.additionalSourcesInput));
-  elements.sourceNotesInput.addEventListener("input", () => autoResizeTextarea(elements.sourceNotesInput));
 
   elements.csvInput.addEventListener("change", handleCsvImport);
   elements.mediaImageFilesInput.addEventListener("change", handleMediaImageFilesImport);

@@ -374,8 +374,6 @@ function clearCodingStateForMediaRowChange() {
   document.getElementById("source_figure_url").value = "";
   elements.additionalSourcesInput.value = "";
   autoResizeTextarea(elements.additionalSourcesInput);
-  elements.sourceNotesInput.value = "";
-  autoResizeTextarea(elements.sourceNotesInput);
   setCodingConfidence("");
   elements.coderNotesInput.value = "";
   autoResizeTextarea(elements.coderNotesInput);

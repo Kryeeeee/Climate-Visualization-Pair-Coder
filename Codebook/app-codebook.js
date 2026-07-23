@@ -60,8 +60,7 @@ async function getImportedMediaImageDataUrl(rowOrPath) {
   return dataUrl;
 }
 
-const specialValueChips = new Set(["not_applicable", "unclear"]);
-const unclearOptionHelp = "Cannot be determined from the available images / context — explain in coder notes.";
+const specialValueChips = new Set(["not_applicable"]);
 
 /* Micro-icons prefixed to change-direction chip labels. Keyed by option value;
    icons always accompany the text label, never replace it. */
@@ -163,12 +162,8 @@ function renderCodebook() {
         helpNode.remove();
       }
       const chipGroup = fieldFragment.querySelector(".chip-group");
-      const renderOptions = field.options.slice();
-      if (!renderOptions.includes("unclear")) renderOptions.push("unclear");
-      renderOptions.forEach((option) => {
-        const help = option === "unclear"
-          ? unclearOptionHelp
-          : field.optionHelp?.[option] || "";
+      field.options.forEach((option) => {
+        const help = field.optionHelp?.[option] || "";
         chipGroup.appendChild(makeChip(field, option, chipLabelForOption(option), help));
       });
       chipGroup.addEventListener("change", (event) => {
@@ -176,6 +171,7 @@ function renderCodebook() {
         syncFieldSelectionStyling(fieldCard, field);
         syncFieldExtraInputs(fieldCard, field);
         updateSectionProgress(section);
+        syncConditionalFields();
       });
       if (field.extraInputs?.length) {
         const extraGroup = document.createElement("div");
@@ -215,6 +211,7 @@ function buildSectionRail() {
     dot.className = "rail-dot";
     dot.dataset.sectionKey = section.key;
     dot.style.setProperty("--dot-color", `var(--section-${railTokenPrefixForSection(section)}-accent)`);
+    dot.style.setProperty("--dot-ring", `var(--section-${railTokenPrefixForSection(section)}-soft)`);
     dot.title = `${section.title} · 0 / ${section.fields.length}`;
     dot.setAttribute("aria-label", `Jump to ${section.title}`);
     dot.addEventListener("click", () => {
@@ -265,13 +262,46 @@ function buildOptionDefinitions(field) {
     list.appendChild(term);
     list.appendChild(description);
   });
-  const unclearTerm = document.createElement("dt");
-  unclearTerm.textContent = "Unclear";
-  const unclearDescription = document.createElement("dd");
-  unclearDescription.textContent = unclearOptionHelp;
-  list.appendChild(unclearTerm);
-  list.appendChild(unclearDescription);
   return list;
+}
+
+/* ─── field-level dependencies (showWhenField) ─── */
+
+function findFieldById(fieldId) {
+  for (const section of codebookSections) {
+    const field = section.fields.find((item) => item.id === fieldId);
+    if (field) return field;
+  }
+  return null;
+}
+
+// A dependent field is hidden and auto-coded "not_applicable" until its
+// controlling field takes one of the trigger values; re-showing clears the
+// auto value so the coder must choose explicitly.
+function syncConditionalFields() {
+  codebookSections.forEach((section) => {
+    section.fields.forEach((field) => {
+      const condition = field.showWhenField;
+      if (!condition) return;
+      const fieldCard = document.querySelector(`.field-card[data-field-id="${field.id}"]`);
+      if (!fieldCard) return;
+      const controller = findFieldById(condition.fieldId);
+      const controllerValues = controller ? getFieldValues(controller) : [];
+      const show = controllerValues.some((value) => condition.values.includes(value));
+      const wasHidden = fieldCard.classList.contains("hidden");
+      fieldCard.classList.toggle("hidden", !show);
+      if (!show && getFieldValue(field) !== "not_applicable") {
+        restoreFieldSelection(field, "not_applicable");
+      } else if (show && wasHidden && getFieldValue(field) === "not_applicable") {
+        restoreFieldSelection(field, "");
+      } else {
+        return;
+      }
+      syncFieldSelectionStyling(fieldCard, field);
+      syncFieldExtraInputs(fieldCard, field);
+      updateSectionProgress(section);
+    });
+  });
 }
 
 function chipLabelForOption(value) {
@@ -307,7 +337,7 @@ function makeChip(field, optionValue, optionLabel, optionHelp) {
 }
 
 function getExclusiveOptions(field) {
-  return new Set(["not_applicable", "unclear", ...(field.exclusiveOptions || [])]);
+  return new Set(["not_applicable", ...(field.exclusiveOptions || [])]);
 }
 
 function applyChipExclusivity(event, field) {
@@ -329,7 +359,7 @@ function applyChipExclusivity(event, field) {
 
 function syncFieldSelectionStyling(fieldCard, field) {
   const value = getFieldValue(field);
-  fieldCard.classList.toggle("not-applicable-selected", value === "not_applicable" || value === "unclear");
+  fieldCard.classList.toggle("not-applicable-selected", value === "not_applicable");
 }
 
 function updateSectionProgress(section) {
@@ -483,6 +513,7 @@ function syncAllFieldExtraInputs() {
     });
     updateSectionProgress(section);
   });
+  syncConditionalFields();
 }
 
 function getCodebookOutputFields() {

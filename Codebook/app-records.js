@@ -193,8 +193,6 @@ function moveToNextAfterSave() {
   document.getElementById("source_working_group").value = "";
   elements.additionalSourcesInput.value = "";
   autoResizeTextarea(elements.additionalSourcesInput);
-  elements.sourceNotesInput.value = "";
-  autoResizeTextarea(elements.sourceNotesInput);
   setCodingConfidence("");
   elements.coderNotesInput.value = "";
   autoResizeTextarea(elements.coderNotesInput);
@@ -286,8 +284,6 @@ function resetForm(initialLoad = false) {
   document.getElementById("source_figure_url").value = "";
   elements.additionalSourcesInput.value = "";
   autoResizeTextarea(elements.additionalSourcesInput);
-  elements.sourceNotesInput.value = "";
-  autoResizeTextarea(elements.sourceNotesInput);
   document.getElementById("media_outlet").value = "";
   mediaMetadataFields.forEach((field) => {
     document.getElementById(field).value = "";
@@ -363,8 +359,6 @@ function loadRecordIntoForm(recordId, { skipDirtyCheck = false } = {}) {
   document.getElementById("source_figure_url").value = record.source_figure_url || "";
   elements.additionalSourcesInput.value = record.additional_sources || "";
   autoResizeTextarea(elements.additionalSourcesInput);
-  elements.sourceNotesInput.value = record.source_notes || "";
-  autoResizeTextarea(elements.sourceNotesInput);
   document.getElementById("media_outlet").value = record.media_outlet || "";
   document.getElementById("media_article_title").value = record.media_article_title || "";
   document.getElementById("media_article_url").value = record.media_article_url || "";
