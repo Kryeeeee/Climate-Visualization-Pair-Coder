@@ -57,12 +57,12 @@ function validateRecord(record) {
   const addError = (message, anchor) => errors.push({ message, anchor });
 
   if (!record.coder_name) addError("Select a coder name.", "coder_name");
-  if (!record.source_organization) addError("Enter or select a source organization.", "source_organization");
-  if (!record.source_figure_id) addError("Enter a source figure ID.", "source_figure_id");
-  if (!record.media_outlet) addError("Enter or select a media outlet.", "media_outlet");
-  if (!record.media_article_title) addError("Enter a media article title.", "media_article_title");
-  if (!record.media_article_url) addError("Enter a media article URL.", "media_article_url");
-  if (!record.media_publication_date) addError("Enter a media publication date.", "media_publication_date");
+  if (!record.source_organization) addError("Enter or select an organization.", "source_organization");
+  if (!record.source_figure_id) addError("Enter a figure ID.", "source_figure_id");
+  if (!record.media_outlet) addError("Enter or select an outlet.", "media_outlet");
+  if (!record.media_article_title) addError("Enter an article title.", "media_article_title");
+  if (!record.media_article_url) addError("Enter an article URL.", "media_article_url");
+  if (!record.media_publication_date) addError("Enter a publication date.", "media_publication_date");
   if (!record.source_image_filename) addError("Upload the original scientific image.", "source_image");
   if (!record.media_image_filename) addError("Select the media adaptation image.", "mediaCsvSelect");
   if (!record.coding_confidence) addError("Select coding confidence.", "codingConfidenceField");

@@ -73,9 +73,10 @@ function markCurrentRowCompleted(record) {
 function markCurrentRowSourceUnclear() {
   if (!currentMediaRow?.__rowKey) return;
   const group = currentMediaRow.__sourceGroup || "other";
+  const currentState = rowState[group][currentMediaRow.__rowKey] || {};
   rowState[group][currentMediaRow.__rowKey] = {
-    ...(rowState[group][currentMediaRow.__rowKey] || {}),
-    source_unclear: true,
+    ...currentState,
+    source_unclear: !currentState.source_unclear,
     updated_by: getFormValue("coder_name"),
     updated_at: new Date().toISOString(),
   };
@@ -198,7 +199,7 @@ function handleRowStatusImport(event) {
         applyMediaRow(null);
       }
     }
-    showToast("Row status file imported.", "success");
+    showToast("Status file imported.", "success");
   };
   reader.readAsText(file);
 }

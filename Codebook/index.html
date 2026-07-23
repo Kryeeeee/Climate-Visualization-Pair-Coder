@@ -17,7 +17,7 @@
   <header class="hero">
     <div>
       <h1>Climate Visualization Pair Coder</h1>
-      <p class="hero-hint">Shortcuts: <kbd>Ctrl</kbd>+<kbd>S</kbd> save &amp; next &nbsp;·&nbsp; <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> previous / next image</p>
+      <p class="hero-hint"><kbd>Ctrl</kbd>+<kbd>S</kbd> save &amp; next &nbsp;·&nbsp; <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> previous / next image</p>
     </div>
     <div class="hero-right">
       <div class="hero-status">
@@ -68,6 +68,7 @@
       </section>
     </section>
 
+    <div class="sheet-shell">
     <section class="right-column">
       <nav class="section-rail" id="sectionRail" aria-label="Coding sections"></nav>
       <section class="panel media-import-panel">
@@ -86,15 +87,15 @@
               </div>
             </div>
             <div class="field">
-              <span>Media image CSV</span>
+              <span>CSV</span>
               <label class="file-picker">
                 <input id="csvInput" type="file" accept=".csv,text/csv" aria-label="Import media image CSV">
-                <span class="file-picker-button">Choose file</span>
-                <span class="file-picker-name">No file selected</span>
+                <span class="file-picker-button">Choose CSV</span>
+                <span class="file-picker-name">No CSV selected</span>
               </label>
             </div>
             <div class="field">
-              <span>Media image folder</span>
+              <span>Image folder</span>
               <label class="file-picker">
                 <input id="mediaImageFilesInput" type="file" accept="image/*" multiple webkitdirectory aria-label="Import media image folder">
                 <span class="file-picker-button">Choose folder</span>
@@ -103,7 +104,6 @@
             </div>
           </div>
         </div>
-        <div class="group-divider">Navigate</div>
         <div class="media-select-row hidden" id="manualMediaRow">
           <label class="field media-select-field">
             <span>Manual media image selection</span>
@@ -119,9 +119,8 @@
         </div>
         <div class="media-select-row">
           <label class="field media-select-field">
-            <span>Select imported media image</span>
-            <select id="mediaCsvSelect">
-              <option value="">No CSV imported</option>
+            <select id="mediaCsvSelect" aria-label="Select a media image row">
+              <option value="">Select a media image row</option>
             </select>
           </label>
           <div class="nav-actions">
@@ -132,7 +131,7 @@
         </div>
         <div class="row-review-actions">
           <button id="markNotImportantBtn" class="button subtle small" type="button" title="Mark row as not important"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><line x1="5" y1="8" x2="11" y2="8"/></svg><span>Not important</span></button>
-          <button id="markSourceUnclearBtn" class="button subtle small" type="button" title="Mark source as unclear"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M7 6.5a1.2 1.2 0 0 1 2.4 0c0 .9-.8 1.2-1.2 2"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></svg><span>Source unclear</span></button>
+          <button id="markSourceUnclearBtn" class="button subtle small" type="button" title="Toggle source unclear status" aria-pressed="false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M7 6.5a1.2 1.2 0 0 1 2.4 0c0 .9-.8 1.2-1.2 2"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></svg><span>Source unclear</span></button>
           <button id="undoRowStatusBtn" class="button subtle small" type="button" title="Undo last row status change"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 9a5 5 0 1 1-1.7-3.8"/><polyline points="11.5 1.5 11.5 5.2 7.8 5.2"/></svg><span>Undo</span></button>
           <button id="deleteRowBtn" class="button subtle danger small" type="button" title="Delete row from coding queue"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" y1="4" x2="14" y2="4"/><path d="M6 4V2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V4"/><path d="M5 4l.5 9h5l.5-9"/></svg><span>Delete</span></button>
         </div>
@@ -155,12 +154,13 @@
                   <option value="Vanessa">Vanessa</option>
                   <option value="Maria Jesus">Maria Jesus</option>
                   <option value="Yongyi">Yongyi</option>
+                  <option value="Laura">Laura</option>
                 </select>
               </label>
               <label class="field">
-                <span>Source organization</span>
+                <span>Organization</span>
                 <div class="combobox" data-options="IPCC|ECMWF / Copernicus|NASA|NOAA">
-                  <input id="source_organization" type="text" placeholder="Select or type a source" autocomplete="off">
+                  <input id="source_organization" type="text" placeholder="Select or type" autocomplete="off">
                   <button type="button" class="combobox-arrow" tabindex="-1" aria-hidden="true"><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
                   <ul class="combobox-dropdown" hidden role="listbox"></ul>
                 </div>
@@ -185,19 +185,19 @@
                 </select>
               </label>
               <label class="field">
-                <span>Source figure ID</span>
+                <span>Figure ID</span>
                 <div class="inline-control-row">
-                  <input id="source_figure_id" type="text" placeholder="e.g. AR5 WGI SPM.7 or Figure 3">
+                  <input id="source_figure_id" type="text" placeholder="e.g. AR5 WGI SPM.7">
                   <button id="generateSourceFigureIdBtn" class="button subtle small" type="button">Generate</button>
                 </div>
               </label>
               <label class="field">
-                <span>Source figure URL</span>
-                <input id="source_figure_url" type="text" placeholder="Link to original figure, report, or data page">
+                <span>Figure URL</span>
+                <input id="source_figure_url" type="text" placeholder="Link to original figure / report / data page">
               </label>
               <label class="field">
                 <span>Additional source(s)</span>
-                <textarea id="additional_sources" rows="1" placeholder="If the figure combines multiple data sources"></textarea>
+                <textarea id="additional_sources" rows="1" placeholder="If multiple"></textarea>
               </label>
               <label class="field full">
                 <span>Source notes</span>
@@ -210,31 +210,31 @@
             <div class="grid two">
               <div class="media-title-row">
                 <label class="field">
-                  <span>Media outlet</span>
+                  <span>Outlet</span>
                   <div class="combobox" data-options="BBC News|The Guardian|The New York Times">
-                    <input id="media_outlet" type="text" placeholder="Select or type a media outlet" autocomplete="off">
+                    <input id="media_outlet" type="text" placeholder="Select or type" autocomplete="off">
                     <button type="button" class="combobox-arrow" tabindex="-1" aria-hidden="true"><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 1 5 5 9 1"/></svg></button>
                     <ul class="combobox-dropdown" hidden role="listbox"></ul>
                   </div>
                 </label>
                 <label class="field">
-                  <span>Media article title</span>
+                  <span>Article title</span>
                   <input id="media_article_title" type="text">
                 </label>
               </div>
               <label class="field full">
-                <span>Media article URL</span>
+                <span>Article URL</span>
                 <div class="readonly-link-row">
                   <input id="media_article_url" type="text">
                   <a id="mediaArticleUrlLink" class="field-link disabled" href="#" target="_blank" rel="noopener noreferrer">Open article</a>
                 </div>
               </label>
               <label class="field">
-                <span>Media publication date</span>
+                <span>Publication date</span>
                 <input id="media_publication_date" type="text" inputmode="numeric" placeholder="yyyy/mm/dd" autocomplete="off">
               </label>
               <label class="field">
-                <span>Media updated date</span>
+                <span>Updated date</span>
                 <input id="media_updated_date" type="text" inputmode="numeric" placeholder="yyyy/mm/dd" autocomplete="off">
               </label>
             </div>
@@ -247,7 +247,7 @@
         <div id="codebookSections" class="sections"></div>
       </section>
 
-      <section class="panel">
+      <section class="panel notes-panel">
         <h2>Notes</h2>
         <div class="notes-grid">
           <div class="field" id="codingConfidenceField">
@@ -270,12 +270,12 @@
           </div>
           <label class="field">
             <span>Coder notes</span>
-            <textarea id="coder_notes" rows="1" placeholder="Notes about ambiguity, interpretation, or missing context."></textarea>
+            <textarea id="coder_notes" rows="1" placeholder="Things not sure about..."></textarea>
           </label>
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel saved-records-panel">
         <div class="records-head">
           <h2>Saved records</h2>
           <div class="records-actions">
@@ -301,6 +301,7 @@
         </div>
       </section>
     </section>
+    </div>
   </main>
 
   <template id="optionGroupTemplate">

@@ -133,6 +133,14 @@ function renderCodebook() {
       fieldCard.dataset.fieldId = field.id;
       const labelNode = fieldFragment.querySelector(".field-card-label");
       labelNode.textContent = field.label;
+      if (field.multiSelect) {
+        // Lives inside the label so the `label + popover` hover selector keeps working.
+        const multiBadge = document.createElement("span");
+        multiBadge.className = "multi-badge";
+        multiBadge.textContent = "multi";
+        multiBadge.title = "Select all that apply";
+        labelNode.appendChild(multiBadge);
+      }
       const helpNode = fieldFragment.querySelector(".field-card-help");
       if (field.help || field.optionHelp) {
         labelNode.classList.add("has-info");
@@ -174,7 +182,7 @@ function renderCodebook() {
         extraGroup.className = "field-extra-grid";
         field.extraInputs.forEach((extraInput) => {
           const extraLabel = document.createElement("label");
-          extraLabel.className = `field field-extra${extraInput.type === "number" ? " field-extra-number" : ""}${extraInput.type === "chartType" ? " field-extra-wide" : ""}`;
+          extraLabel.className = `field field-extra${extraInput.type === "number" ? " field-extra-number" : ""}${["chartType", "textarea"].includes(extraInput.type) ? " field-extra-wide" : ""}`;
           extraLabel.appendChild(makeExtraInputLabel(extraInput));
           extraLabel.appendChild(makeExtraInputControl(field, extraInput));
           extraGroup.appendChild(extraLabel);

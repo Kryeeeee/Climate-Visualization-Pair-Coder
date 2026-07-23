@@ -508,6 +508,9 @@ function updateNavigationButtons() {
   elements.nextRowBtn.disabled = !hasRows || currentIndex === -1 || currentIndex >= rows.length - 1;
   elements.markNotImportantBtn.disabled = !hasRows || currentIndex === -1;
   elements.markSourceUnclearBtn.disabled = !hasRows || currentIndex === -1;
+  const sourceUnclear = currentIndex >= 0 && getRowState(rows[currentIndex]).source_unclear;
+  elements.markSourceUnclearBtn.classList.toggle("is-active", sourceUnclear);
+  elements.markSourceUnclearBtn.setAttribute("aria-pressed", String(sourceUnclear));
   elements.deleteRowBtn.disabled = !hasRows || currentIndex === -1;
   elements.undoRowStatusBtn.disabled = !lastRowDispositionChange;
   const displayIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
