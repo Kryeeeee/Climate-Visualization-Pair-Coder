@@ -27,7 +27,7 @@ const codebookSections = [
   {
     key: "information_selection",
     title: "Information selection",
-    description: "Which information keeps in adaptation?",
+    description: "What information is kept?",
     fields: [
       {
         id: "data_variables_scope",
