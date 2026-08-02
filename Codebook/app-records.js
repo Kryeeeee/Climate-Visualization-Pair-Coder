@@ -390,13 +390,7 @@ function loadRecordIntoForm(recordId, { skipDirtyCheck = false } = {}) {
   elements.sourceImageInput.value = "";
   syncFilePickerName(elements.sourceImageInput);
 
-  const matchedRow = importedRows.find((row) => {
-    return (
-      (record.media_csv_article_id && row.article_id === record.media_csv_article_id) ||
-      (record.media_csv_local_path && row.local_image_path === record.media_csv_local_path) ||
-      (record.media_csv_image_url && row.image_url === record.media_csv_image_url)
-    );
-  });
+  const matchedRow = findImportedMediaRowForRecord(record);
 
   if (matchedRow && getNavigableRows().some((row) => row.__rowIndex === matchedRow.__rowIndex)) {
     elements.mediaCsvSelect.value = matchedRow.__rowIndex;

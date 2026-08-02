@@ -474,6 +474,53 @@ function findSavedRecordForMediaRow(row) {
   }) || null;
 }
 
+function findImportedMediaRowForRecord(record) {
+  const recordPath = normalizeImageLookupKey(record?.media_csv_local_path || "");
+  const recordUrl = normalizeImageLookupKey(record?.media_csv_image_url || "");
+  const recordArticleId = String(record?.media_csv_article_id || "").trim();
+  const recordFilename = normalizeImageLookupKey(
+    record?.media_image_filename
+      || extractFilename(record?.media_csv_local_path || record?.media_csv_image_url || "")
+  );
+
+  if (recordPath) {
+    const pathMatch = importedRows.find((row) => {
+      return normalizeImageLookupKey(row.local_image_path || "") === recordPath;
+    });
+    if (pathMatch) return pathMatch;
+  }
+
+  if (recordUrl) {
+    const urlMatch = importedRows.find((row) => {
+      return normalizeImageLookupKey(row.image_url || "") === recordUrl;
+    });
+    if (urlMatch) return urlMatch;
+  }
+
+  if (recordArticleId && recordFilename) {
+    const articleImageMatch = importedRows.find((row) => {
+      const rowFilename = normalizeImageLookupKey(
+        extractFilename(row.local_image_path || row.image_url || "")
+      );
+      return String(row.article_id || "").trim() === recordArticleId
+        && rowFilename === recordFilename;
+    });
+    if (articleImageMatch) return articleImageMatch;
+  }
+
+  if (recordFilename) {
+    const filenameMatches = importedRows.filter((row) => {
+      const rowFilename = normalizeImageLookupKey(
+        extractFilename(row.local_image_path || row.image_url || "")
+      );
+      return rowFilename === recordFilename;
+    });
+    if (filenameMatches.length === 1) return filenameMatches[0];
+  }
+
+  return null;
+}
+
 function moveMediaSelection(direction) {
   const rows = getNavigableRows();
   if (!rows.length) return;
