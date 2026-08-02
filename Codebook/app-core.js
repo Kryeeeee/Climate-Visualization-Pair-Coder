@@ -119,7 +119,7 @@ const codebookSections = [
           not_visible: "No source named in the image or context.",
         },
         extraInputs: [
-          { id: "source_attribution_type", label: "Visible source attribution type", type: "choice", options: ["source_name_only", "full_source_link", "article_text_link"], showWhen: ["visible"], requiredWhen: ["visible"] },
+          { id: "source_attribution_type", label: "Visible source attribution type", type: "choice", options: ["source_name", "source_link", "source_name_and_link"], showWhen: ["visible"], requiredWhen: ["visible"] },
         ],
       },
     ],
@@ -186,15 +186,6 @@ const codebookSections = [
         ],
       },
       {
-        id: "visual_emphasis",
-        label: "Visual emphasis",
-        help: "Highlighting / arrows / spotlights / contrast cues.",
-        options: ["same", "added", "removed", "changed", "not_applicable"],
-        extraInputs: [
-          { id: "visual_emphasis_description", label: "Describe emphasis change", type: "textarea", placeholder: "Briefly describe the emphasis change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
-        ],
-      },
-      {
         id: "color_function",
         label: "Color function",
         help: "Color's communicative role.",
@@ -235,14 +226,6 @@ const codebookSections = [
         options: ["same", "added", "removed", "changed", "not_applicable"],
         extraInputs: [
           { id: "annotations_description", label: "Describe annotation change", type: "textarea", placeholder: "Briefly describe the annotation change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
-        ],
-      },
-      {
-        id: "external_notes_explanations",
-        label: "Notes outside the dataviz",
-        options: ["same", "added", "removed", "changed", "not_applicable"],
-        extraInputs: [
-          { id: "external_notes_explanations_description", label: "Describe notes change", type: "textarea", placeholder: "Briefly describe the note change.", showWhen: ["added", "removed", "changed"], requiredWhen: ["added", "removed", "changed"] },
         ],
       },
       {
